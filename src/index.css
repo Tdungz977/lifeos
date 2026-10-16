@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Official LIFEOS Design Tokens */
+    --background: #090B12;
+    --surface: #191725;
+    --surface-hover: #211E31;
+    --surface-elevated: #221F33;
+    --surface-subtle: #12101D;
+    
+    --primary: #7255F7;
+    --primary-hover: #6144E3;
+    --primary-muted: rgba(114, 85, 247, 0.15);
+    
+    --success: #10B981;
+    --success-muted: rgba(16, 185, 129, 0.15);
+    
+    --warning: #F59E0B;
+    --warning-muted: rgba(245, 158, 11, 0.15);
+    
+    --danger: #EF4444;
+    --danger-muted: rgba(239, 68, 68, 0.15);
+    
+    --border: #282538;
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-active: #7255F7;
+    
+    --foreground: #F3F4F6;
+    --foreground-muted: #9CA3AF;
+    --foreground-subtle: #6B7280;
+  }
+
+  * {
+    border-color: #282538;
+  }
+
+  html, body {
+    background-color: #090B12;
+    color: #F3F4F6;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Modern Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #282538;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3E3955;
+}
+
+/* SaaS Surfaces */
+.surface-card {
+  background-color: #191725;
+  border: 1px solid #282538;
+  border-radius: 0.875rem; /* 14px */
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.surface-card:hover {
+  border-color: #3C3655;
+}
+
+.surface-elevated {
+  background-color: #221F33;
+  border: 1px solid #37324E;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.surface-sidebar {
+  background-color: #110F1D;
+  border-right: 1px solid #282538;
+}
+
+.surface-header {
+  background-color: rgba(17, 15, 29, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid #282538;
+}
+
+.surface-slot {
+  background-color: #12101D;
+  border: 1px solid #252234;
+}
+
+/* Minimalist Badges (Strict WCAG Contrast) */
+.badge-primary {
+  background-color: rgba(114, 85, 247, 0.14);
+  color: #B2A2FA;
+  border: 1px solid rgba(114, 85, 247, 0.3);
+}
+
+.badge-success {
+  background-color: rgba(16, 185, 129, 0.14);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-warning {
+  background-color: rgba(245, 158, 11, 0.14);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-danger {
+  background-color: rgba(239, 68, 68, 0.14);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-neutral {
+  background-color: #221F33;
+  color: #9CA3AF;
+  border: 1px solid #2F2A43;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
