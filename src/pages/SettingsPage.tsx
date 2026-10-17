@@ -9,14 +9,17 @@ import {
   RefreshCw,
   LogOut,
   AlertTriangle,
+  Flame,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { isFirebaseConfigured, activeFirebaseConfig } from '@/lib/firebase'
 import { Card, CardHeader } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { AvatarPicker } from '@/components/common/AvatarPicker'
 import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal'
+import { FirebaseConfigModal } from '@/components/common/FirebaseConfigModal'
 
 export const SettingsPage: React.FC = () => {
   const { user, profile, updateProfile, signOut, isConfigured } = useAuth()
@@ -55,6 +58,7 @@ export const SettingsPage: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [showConfigModal, setShowConfigModal] = useState(false)
+  const [showFirebaseModal, setShowFirebaseModal] = useState(false)
   const [exporting, setExporting] = useState(false)
 
   // Sync state whenever profile is fetched or updated asynchronously
@@ -424,6 +428,46 @@ export const SettingsPage: React.FC = () => {
         </div>
       </Card>
 
+      {/* Firebase Cloud Connection */}
+      <Card className="border-[#F59E0B]/30">
+        <CardHeader
+          title="Kết Nối Nền Tảng Firebase Cloud"
+          subtitle="Quản lý đồng bộ tài khoản, phiên đăng nhập và cơ sở dữ liệu Cloud Firestore"
+          icon={<Flame className="w-4 h-4 text-[#F59E0B]" />}
+        />
+        <div className="space-y-4 text-xs">
+          <div
+            className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+              isFirebaseConfigured()
+                ? 'bg-[#0E281F] border-[#10B981]/30 text-[#34D399]'
+                : 'bg-[#2A1515] border-[#F59E0B]/30 text-[#FBBF24]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Flame className="w-5 h-5 shrink-0" />
+              <div>
+                <p className="font-bold text-sm text-[#F3F4F6]">
+                  {isFirebaseConfigured() ? 'Firebase Cloud Đã Kết Nối' : 'Chưa Kết Nối Firebase Cloud'}
+                </p>
+                <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+                  {isFirebaseConfigured()
+                    ? `Dự án: "${activeFirebaseConfig.projectId}" • Đồng bộ tài khoản & Firestore trực tuyến.`
+                    : 'Ứng dụng đang hoạt động ở chế độ Demo/Cục bộ. Bạn có thể kết nối dự án Firebase để đồng bộ đám mây.'}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFirebaseModal(true)}
+              className="border-[#F59E0B]/40 text-[#F3F4F6] hover:bg-[#F59E0B]/10 shrink-0 self-start sm:self-auto"
+            >
+              {isFirebaseConfigured() ? 'Đổi cấu hình Firebase' : 'Kết nối Firebase'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       {/* Account & Data Protection */}
       <Card className="border-indigo-900/40">
         <CardHeader
@@ -438,7 +482,7 @@ export const SettingsPage: React.FC = () => {
               <span>Chính sách Row Level Security (RLS) đang bảo vệ dữ liệu của bạn</span>
             </div>
             <p className="text-slate-400 leading-relaxed">
-              Toàn bộ mục tiêu, nhiệm vụ, thói quen và lịch trình cá nhân được cô lập tuyệt đối ở tầng cơ sở dữ liệu PostgreSQL. Không một người dùng nào khác có thể truy vấn dữ liệu của bạn trừ khi bạn chủ động cấp quyền chia sẻ (Share Permissions).
+              Toàn bộ mục tiêu, nhiệm vụ, thói quen và lịch trình cá nhân được cô lập tuyệt đối ở tầng cơ sở dữ liệu. Không một người dùng nào khác có thể truy vấn dữ liệu của bạn trừ khi bạn chủ động cấp quyền chia sẻ (Share Permissions).
             </p>
           </div>
 
@@ -460,6 +504,7 @@ export const SettingsPage: React.FC = () => {
       </Card>
 
       <SupabaseConfigModal isOpen={showConfigModal} onClose={() => setShowConfigModal(false)} />
+      <FirebaseConfigModal isOpen={showFirebaseModal} onClose={() => setShowFirebaseModal(false)} />
     </div>
   )
 }
