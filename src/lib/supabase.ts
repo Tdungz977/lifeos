@@ -11,13 +11,23 @@ export const activeSupabaseUrl = envUrl || localUrl || ''
 export const activeSupabaseAnonKey = envKey || localKey || ''
 
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(
-    activeSupabaseUrl &&
-    activeSupabaseAnonKey &&
-    activeSupabaseUrl.startsWith('https://') &&
-    activeSupabaseUrl.includes('.supabase.co') &&
-    !activeSupabaseUrl.includes('your-project-id')
-  )
+  if (!activeSupabaseUrl || !activeSupabaseAnonKey) return false
+  const url = activeSupabaseUrl.trim().toLowerCase()
+  const key = activeSupabaseAnonKey.trim()
+
+  const isValidProtocol =
+    url.startsWith('https://') ||
+    url.startsWith('http://localhost') ||
+    url.startsWith('http://127.0.0.1')
+
+  const isPlaceholder =
+    url.includes('placeholder') ||
+    url.includes('your_supabase_project_url') ||
+    url.includes('your-project-id') ||
+    key.includes('placeholder') ||
+    key.includes('your_supabase_anon_key')
+
+  return isValidProtocol && !isPlaceholder && key.length > 20
 }
 
 // Fallback dummy URL so createClient does not crash if user hasn't configured yet

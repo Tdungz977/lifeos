@@ -21,6 +21,10 @@ const LearningPage = lazy(() => import('@/pages/LearningPage').then((m) => ({ de
 const HealthPage = lazy(() => import('@/pages/HealthPage').then((m) => ({ default: m.HealthPage })))
 const HabitsPage = lazy(() => import('@/pages/HabitsPage').then((m) => ({ default: m.HabitsPage })))
 const WeeklyReviewPage = lazy(() => import('@/pages/WeeklyReviewPage').then((m) => ({ default: m.WeeklyReviewPage })))
+const SocialPage = lazy(() => import('@/pages/SocialPage').then((m) => ({ default: m.SocialPage })))
+const GrowthHubPage = lazy(() => import('@/pages/GrowthHubPage').then((m) => ({ default: m.GrowthHubPage })))
+const ComparePage = lazy(() => import('@/pages/ComparePage').then((m) => ({ default: m.ComparePage })))
+const ChallengesPage = lazy(() => import('@/pages/ChallengesPage').then((m) => ({ default: m.ChallengesPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 
 // Lightweight Loading Indicator for smooth page transitions
@@ -57,6 +61,10 @@ export function App() {
                 <Route path="/goals" element={<GoalsPage />} />
                 <Route path="/today" element={<TodayPage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/social" element={<SocialPage />} />
+                <Route path="/growth-hub" element={<GrowthHubPage />} />
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/challenges" element={<ChallengesPage />} />
                 <Route path="/progress" element={<ProgressPage />} />
                 <Route path="/learning" element={<LearningPage />} />
                 <Route path="/health" element={<HealthPage />} />

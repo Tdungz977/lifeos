@@ -9,6 +9,9 @@ import {
   Plus,
   BookOpen,
   Filter,
+  Share2,
+  Users,
+  Lock,
 } from 'lucide-react'
 import {
   format,
@@ -23,16 +26,20 @@ import {
   subMonths,
   addWeeks,
   subWeeks,
+  addDays,
+  subDays,
 } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useAuth } from '@/context/AuthContext'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import { Task, Goal, Subject } from '@/types/database'
+import { Task, Goal, Subject, Profile } from '@/types/database'
 import { Card, CardHeader } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Modal } from '@/components/common/Modal'
 import { Badge } from '@/components/common/Badge'
+import { GranularShareModal } from '@/components/modals/GranularShareModal'
+import { sharingService } from '@/services/sharingService'
 import { formatViDate } from '@/lib/utils'
 
 type CalendarViewMode = 'month' | 'week' | 'day'
@@ -48,12 +55,25 @@ export const CalendarPage: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Shared schedule viewing state
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string>('me')
+  const [sharedUsers, setSharedUsers] = useState<Profile[]>([])
+  const [showShareModal, setShowShareModal] = useState(false)
+
   // Quick task creation modal from calendar
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskStartTime, setNewTaskStartTime] = useState('09:00')
   const [newTaskDuration, setNewTaskDuration] = useState('30')
   const [newTaskPriority, setNewTaskPriority] = useState('medium')
+
+  // Load list of friends who shared schedule
+  useEffect(() => {
+    if (!user) return
+    sharingService.fetchUsersWhoSharedWithMe(user.id, 'schedule').then((list) => {
+      setSharedUsers(list)
+    })
+  }, [user])
 
   const fetchCalendarData = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
@@ -66,34 +86,47 @@ export const CalendarPage: React.FC = () => {
       const start = format(startOfWeek(startOfMonth(subMonths(currentDate, 1)), { weekStartsOn: 1 }), 'yyyy-MM-dd')
       const end = format(endOfWeek(endOfMonth(addMonths(currentDate, 1)), { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
-      const [taskRes, goalRes, subRes] = await Promise.all([
-        supabase
-          .from('tasks')
-          .select('*, goal:goals(id, title, category)')
-          .eq('user_id', user.id)
-          .gte('due_date', start)
-          .lte('due_date', end),
-        supabase
-          .from('goals')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_archived', false),
-        supabase
-          .from('subjects')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_archived', false),
-      ])
+      if (selectedOwnerId === 'me') {
+        const [taskRes, goalRes, subRes] = await Promise.all([
+          supabase
+            .from('tasks')
+            .select('*, goal:goals(id, title, category)')
+            .eq('user_id', user.id)
+            .gte('due_date', start)
+            .lte('due_date', end),
+          supabase
+            .from('goals')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_archived', false),
+          supabase
+            .from('subjects')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_archived', false),
+        ])
 
-      if (taskRes.data) setTasks(taskRes.data)
-      if (goalRes.data) setGoals(goalRes.data)
-      if (subRes.data) setSubjects(subRes.data)
+        if (taskRes.data) setTasks(taskRes.data)
+        if (goalRes.data) setGoals(goalRes.data)
+        if (subRes.data) setSubjects(subRes.data)
+      } else {
+        // Fetch friend's shared schedule tasks
+        const sharedTasks = await sharingService.fetchSharedScheduleTasks(
+          user.id,
+          selectedOwnerId,
+          start,
+          end
+        )
+        setTasks(sharedTasks)
+        setGoals([])
+        setSubjects([])
+      }
     } catch (err) {
       console.error('Error fetching calendar data:', err)
     } finally {
       setLoading(false)
     }
-  }, [currentDate, user])
+  }, [currentDate, user, selectedOwnerId])
 
   useEffect(() => {
     fetchCalendarData()
@@ -102,13 +135,21 @@ export const CalendarPage: React.FC = () => {
   const handlePrev = () => {
     if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1))
     else if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1))
-    else setSelectedDate(subWeeks(selectedDate, 1))
+    else {
+      const prev = subDays(selectedDate, 1)
+      setSelectedDate(prev)
+      setCurrentDate(prev)
+    }
   }
 
   const handleNext = () => {
     if (viewMode === 'month') setCurrentDate(addMonths(currentDate, 1))
     else if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1))
-    else setSelectedDate(addWeeks(selectedDate, 1))
+    else {
+      const next = addDays(selectedDate, 1)
+      setSelectedDate(next)
+      setCurrentDate(next)
+    }
   }
 
   // Days generator for Monthly view
@@ -159,20 +200,48 @@ export const CalendarPage: React.FC = () => {
       {/* Calendar Header with View Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Lịch Trình & Kế Hoạch Đa Chế Độ</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-indigo-400" />
+            Lịch Trình & Kế Hoạch Đa Chế Độ
+          </h1>
           <p className="text-xs text-slate-400 mt-1">
             Tổng quan thời gian theo Tháng, Tuần và Lịch trình chi tiết từng ngày.
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Calendar Owner Selector */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+            <select
+              value={selectedOwnerId}
+              onChange={(e) => setSelectedOwnerId(e.target.value)}
+              className="bg-transparent text-xs text-[#F3F4F6] font-semibold focus:outline-none cursor-pointer px-2 py-1"
+            >
+              <option value="me" className="bg-slate-900 text-white">📅 Lịch cá nhân của tôi</option>
+              {sharedUsers.map((su) => (
+                <option key={su.id} value={su.id} className="bg-slate-900 text-white">
+                  👥 Lịch bạn bè: {su.display_name || su.username}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowShareModal(true)}
+            leftIcon={<Share2 className="w-3.5 h-3.5 text-[#7255F7]" />}
+          >
+            Chia sẻ lịch
+          </Button>
+
           {/* Mode switch */}
           <div className="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
             {(['month', 'week', 'day'] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   viewMode === mode ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -186,7 +255,11 @@ export const CalendarPage: React.FC = () => {
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="text-xs sm:text-sm font-bold text-white capitalize min-w-[130px] text-center">
-              {format(currentDate, viewMode === 'month' ? 'MMMM yyyy' : "'Tuần' w, yyyy", { locale: vi })}
+              {viewMode === 'month'
+                ? format(currentDate, 'MMMM yyyy', { locale: vi })
+                : viewMode === 'week'
+                ? format(currentDate, "'Tuần' w, yyyy", { locale: vi })
+                : format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })}
             </span>
             <Button variant="outline" size="sm" onClick={handleNext}>
               <ChevronRight className="w-4 h-4" />
@@ -204,6 +277,28 @@ export const CalendarPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Shared Schedule Notification Banner */}
+      {selectedOwnerId !== 'me' && (
+        <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-800/60 text-indigo-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <Users className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span>
+              Đang xem lịch trình được chia sẻ của{' '}
+              <strong className="text-white">
+                {sharedUsers.find((u) => u.id === selectedOwnerId)?.display_name || 'Bạn bè'}
+              </strong>{' '}
+              (Chế độ chỉ xem theo quyền hạn).
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedOwnerId('me')}
+            className="text-xs font-semibold text-indigo-300 hover:text-white underline cursor-pointer shrink-0"
+          >
+            ← Quay về Lịch cá nhân của tôi
+          </button>
+        </div>
+      )}
 
       {/* Main Views */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -542,6 +637,14 @@ export const CalendarPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Granular Sharing & Permissions Modal */}
+      <GranularShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        initialEntityType="schedule"
+        onPermissionChanged={fetchCalendarData}
+      />
     </div>
   )
 }

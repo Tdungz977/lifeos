@@ -1,0 +1,28 @@
+# LIFEOS Robots Configuration
+# Allow search engines to index public landing and authentication pages
+# Protect private, user-authenticated dashboard routes from crawling
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /reset-password
+
+# Disallow private user-specific dashboard routes
+Disallow: /today
+Disallow: /goals
+Disallow: /habits
+Disallow: /calendar
+Disallow: /progress
+Disallow: /health
+Disallow: /learning
+Disallow: /weekly-review
+Disallow: /moon
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /social
+Disallow: /growth-hub
+Disallow: /compare
+Disallow: /challenges
+
+Sitemap: https://lifeos-opal-nu.vercel.app/sitemap.xml

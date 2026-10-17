@@ -12,6 +12,7 @@ import {
   Target,
   Clock,
   HeartPulse,
+  AlertTriangle,
 } from 'lucide-react'
 import { startOfWeek, endOfWeek, format, subWeeks, addWeeks } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -34,6 +35,7 @@ export const WeeklyReviewPage: React.FC = () => {
 
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   // Real data metrics for this week
   const [completedTasksCount, setCompletedTasksCount] = useState(0)
@@ -156,8 +158,13 @@ export const WeeklyReviewPage: React.FC = () => {
   }, [loadWeeklyData])
 
   const handleSaveReview = async () => {
-    if (!user || !isSupabaseConfigured()) return
+    if (!user || !isSupabaseConfigured()) {
+      setSaveError('Vui lòng đăng nhập và kết nối Supabase để lưu báo cáo tuần.')
+      setTimeout(() => setSaveError(''), 4000)
+      return
+    }
     setSaving(true)
+    setSaveError('')
 
     try {
       const { data, error } = await supabase
@@ -179,13 +186,15 @@ export const WeeklyReviewPage: React.FC = () => {
         .select()
         .single()
 
-      if (!error && data) {
+      if (error) {
+        setSaveError(error.message || 'Lỗi khi lưu báo cáo tổng kết tuần.')
+      } else if (data) {
         setReview(data)
         setSaveSuccess(true)
         setTimeout(() => setSaveSuccess(false), 2500)
       }
-    } catch (err) {
-      console.error('Error saving weekly review:', err)
+    } catch (err: any) {
+      setSaveError(err.message || 'Lỗi khi lưu báo cáo tổng kết tuần.')
     } finally {
       setSaving(false)
     }
@@ -378,6 +387,11 @@ export const WeeklyReviewPage: React.FC = () => {
           {saveSuccess && (
             <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-medium">
               <CheckCircle2 className="w-4 h-4" /> Đã lưu báo cáo tổng kết tuần thành công!
+            </span>
+          )}
+          {saveError && (
+            <span className="text-xs text-rose-400 flex items-center gap-1.5 font-medium">
+              <AlertTriangle className="w-4 h-4" /> {saveError}
             </span>
           )}
           <div className="ml-auto">

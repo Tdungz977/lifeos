@@ -4,16 +4,19 @@ import { Sparkles, Compass, CheckCircle2, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { AvatarPicker } from '@/components/common/AvatarPicker'
 import confetti from 'canvas-confetti'
 
 export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate()
   const { user, profile, completeOnboarding } = useAuth()
   const [step, setStep] = useState(1)
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
   const [displayName, setDisplayName] = useState(
     profile?.display_name || user?.user_metadata?.full_name || 'Chiến binh'
   )
   const [timezone, setTimezone] = useState('Asia/Ho_Chi_Minh')
+  const [growthGoal, setGrowthGoal] = useState('')
   const [dailyIntention, setDailyIntention] = useState(
     'Kỷ luật là tự do. Hoàn thành 3 mục tiêu quan trọng nhất mỗi ngày.'
   )
@@ -26,6 +29,8 @@ export const OnboardingPage: React.FC = () => {
     try {
       const res = await completeOnboarding({
         displayName,
+        avatarUrl,
+        growthGoal,
         timezone,
         dailyIntention,
       })
@@ -82,11 +87,17 @@ export const OnboardingPage: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-100">Chào mừng bạn đến với LIFEOS</h2>
-                  <p className="text-xs text-slate-400">Hãy thiết lập danh xưng và múi giờ làm việc của bạn</p>
+                  <p className="text-xs text-slate-400">Hãy thiết lập ảnh đại diện, danh xưng và múi giờ làm việc</p>
                 </div>
               </div>
 
               <div className="space-y-4 pt-2">
+                <AvatarPicker
+                  currentAvatar={avatarUrl}
+                  displayName={displayName}
+                  onSelect={(url) => setAvatarUrl(url)}
+                />
+
                 <Input
                   label="Tên hiển thị của bạn"
                   value={displayName}
@@ -132,12 +143,19 @@ export const OnboardingPage: React.FC = () => {
                   <Compass className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-100">Định hướng & Tôn chỉ hàng ngày</h2>
-                  <p className="text-xs text-slate-400">Một câu nhắc nhở bản thân mỗi sáng thức dậy</p>
+                  <h2 className="text-lg font-bold text-slate-100">Mục Tiêu & Định Hướng Phát Triển</h2>
+                  <p className="text-xs text-slate-400">Mục tiêu phát triển cá nhân dài hạn và tôn chỉ hành động</p>
                 </div>
               </div>
 
               <div className="space-y-3 pt-2">
+                <Input
+                  label="Mục tiêu phát triển cá nhân dài hạn"
+                  value={growthGoal}
+                  onChange={(e) => setGrowthGoal(e.target.value)}
+                  placeholder="Ví dụ: Đạt IELTS 7.5 & Chạy Half-Marathon trong 6 tháng..."
+                />
+
                 <Input
                   label="Châm ngôn hành động (Daily Intention)"
                   value={dailyIntention}

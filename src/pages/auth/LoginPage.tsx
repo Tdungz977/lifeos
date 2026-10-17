@@ -1,6 +1,16 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Sparkles, Mail, Lock, AlertCircle, ArrowRight, Database } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import {
+  Sparkles,
+  Mail,
+  Lock,
+  AlertCircle,
+  ArrowRight,
+  Database,
+  Eye,
+  EyeOff,
+  UserPlus,
+} from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
@@ -8,12 +18,16 @@ import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { signIn, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [showConfig, setShowConfig] = useState(false)
+
+  const from = location.state?.from?.pathname || '/'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,32 +39,37 @@ export const LoginPage: React.FC = () => {
     }
 
     setLoading(true)
-    const { error } = await signIn(email, password)
+    const { error } = await signIn(email.trim(), password)
     setLoading(false)
 
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        setErrorMsg('Email hoặc mật khẩu không chính xác.')
+      const msg = error.message || ''
+      if (msg.includes('Invalid login credentials')) {
+        setErrorMsg('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.')
+      } else if (msg.includes('Email not confirmed')) {
+        setErrorMsg('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư email của bạn.')
+      } else if (msg.includes('Too many requests')) {
+        setErrorMsg('Quá nhiều lần đăng nhập không thành công. Vui lòng đợi trong giây lát và thử lại.')
       } else {
-        setErrorMsg(error.message || 'Đăng nhập không thành công.')
+        setErrorMsg(msg || 'Đăng nhập không thành công. Vui lòng thử lại.')
       }
     } else {
-      navigate('/')
+      navigate(from, { replace: true })
     }
   }
 
   return (
     <div className="min-h-screen bg-[#080c14] flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Subtle background glow */}
+      {/* Background ambient lighting */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md space-y-6 relative z-10 animate-fade-in">
         {/* Brand */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 shadow-xl shadow-indigo-900/40 border border-indigo-400/30">
+          <Link to="/" className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#7255F7] to-indigo-500 shadow-xl shadow-indigo-900/40 border border-indigo-400/30 hover:scale-105 transition-transform">
             <Sparkles className="w-6 h-6 text-white" />
-          </div>
+          </Link>
           <h1 className="text-2xl font-extrabold tracking-tight text-white">LIFEOS</h1>
           <p className="text-xs text-slate-400 max-w-xs mx-auto">
             Hệ điều hành quản lý mục tiêu, kế hoạch và kỷ luật cá nhân bền vững.
@@ -67,7 +86,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowConfig(true)}
-              className="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold border border-amber-500/40 text-[11px]"
+              className="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold border border-amber-500/40 text-[11px] cursor-pointer"
             >
               Cấu hình DB
             </button>
@@ -76,13 +95,21 @@ export const LoginPage: React.FC = () => {
 
         {/* Login Card */}
         <div className="surface-card rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-2xl backdrop-blur-xl space-y-5">
-          <div className="space-y-1">
-            <h2 className="text-lg font-bold text-slate-100">Đăng nhập tài khoản</h2>
-            <p className="text-xs text-slate-400">Nhập email và mật khẩu để tiếp tục hệ thống</p>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h2 className="text-lg font-bold text-slate-100">Đăng nhập tài khoản</h2>
+              <p className="text-xs text-slate-400">Nhập email và mật khẩu để tiếp tục hệ thống</p>
+            </div>
+            <Link
+              to="/register"
+              className="text-xs font-semibold text-[#7255F7] hover:text-[#B2A2FA] transition-colors"
+            >
+              Đăng ký mới
+            </Link>
           </div>
 
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-start gap-2">
+            <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-start gap-2 animate-fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
@@ -101,53 +128,67 @@ export const LoginPage: React.FC = () => {
             />
 
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Mật khẩu
-                </label>
-                <Link
-                  to="/reset-password"
-                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Quên mật khẩu?
-                </Link>
-              </div>
               <Input
-                type="password"
+                label="Mật khẩu"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 leftIcon={<Lock className="w-4 h-4" />}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                    title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
                 required
               />
+              <div className="flex justify-end pt-0.5">
+                <Link
+                  to="/reset-password"
+                  className="text-[11px] text-slate-400 hover:text-[#B2A2FA] transition-colors"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </div>
             </div>
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full font-semibold mt-2 shadow-lg shadow-indigo-950/50"
-              isLoading={loading}
-              rightIcon={<ArrowRight className="w-4 h-4" />}
-            >
-              Đăng nhập
-            </Button>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full shadow-lg shadow-[#7255F7]/25"
+                isLoading={loading}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Đăng nhập vào LIFEOS
+              </Button>
+            </div>
           </form>
 
-          <div className="pt-4 border-t border-slate-800 text-center">
-            <p className="text-xs text-slate-400">
-              Chưa có tài khoản?{' '}
-              <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold">
-                Đăng ký ngay
-              </Link>
-            </p>
+          {/* Quick Register Link */}
+          <div className="pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400">
+            <span>Chưa có tài khoản? </span>
+            <Link
+              to="/register"
+              className="font-bold text-[#7255F7] hover:text-[#B2A2FA] transition-colors inline-flex items-center gap-1"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Đăng ký miễn phí ngay
+            </Link>
           </div>
         </div>
 
-        {/* Security & Isolation statement */}
-        <p className="text-center text-[11px] text-slate-400">
-          Dữ liệu được bảo mật hoàn toàn riêng tư bằng Supabase Row Level Security (RLS).
-        </p>
+        {/* Back to Home Link */}
+        <div className="text-center">
+          <Link to="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            ← Quay về trang chủ
+          </Link>
+        </div>
       </div>
 
       <SupabaseConfigModal isOpen={showConfig} onClose={() => setShowConfig(false)} />

@@ -28,6 +28,7 @@ import {
   toggleTaskStatus,
   rescheduleTask,
   deleteTaskWithSync,
+  syncGoalProgress,
 } from '@/services/taskService'
 import { Card } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
@@ -188,11 +189,15 @@ export const TodayPage: React.FC = () => {
 
     if (!error && data) {
       setTasks((prev) => [...prev, data])
+      if (selectedGoalId) {
+        await syncGoalProgress(selectedGoalId, user.id)
+      }
       setIsModalOpen(false)
       setTitle('')
       setDescription('')
       setStartTime('')
       setEndTime('')
+      setSelectedGoalId('')
       setIsPriority(false)
     }
   }

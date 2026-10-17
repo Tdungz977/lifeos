@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  TrendingUp,
   BarChart3,
   CheckCircle2,
-  Calendar,
   PieChart as PieChartIcon,
-  Award,
-  Clock,
   Target,
   Flame,
   AlertCircle,
   HelpCircle,
   GraduationCap,
+  Clock,
+  Loader2,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -35,7 +33,6 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { Task, HabitCheckin, Goal, StudySession } from '@/types/database'
 import { Card, CardHeader } from '@/components/common/Card'
 import { ProgressBar } from '@/components/common/ProgressBar'
-import { EmptyState } from '@/components/common/EmptyState'
 
 const CATEGORY_COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6']
 
@@ -108,26 +105,30 @@ export const ProgressPage: React.FC = () => {
     fetchAnalyticsData()
   }, [fetchAnalyticsData])
 
+  const [referenceDate] = useState(() => new Date())
+
   // Aggregate daily timeline data
-  const timelineData = Array.from({ length: rangeDays }).map((_, i) => {
-    const d = subDays(new Date(), rangeDays - 1 - i)
-    const dateStr = format(d, 'yyyy-MM-dd')
-    const dayTasks = tasks.filter((t) => t.due_date === dateStr)
-    const completedTasks = dayTasks.filter((t) => t.status === 'completed').length
-    const dayCheckins = checkins.filter((c) => c.checkin_date === dateStr).length
+  const timelineData = useMemo(() => {
+    return Array.from({ length: rangeDays }).map((_, i) => {
+      const d = subDays(referenceDate, rangeDays - 1 - i)
+      const dateStr = format(d, 'yyyy-MM-dd')
+      const dayTasks = tasks.filter((t) => t.due_date === dateStr)
+      const completedTasks = dayTasks.filter((t) => t.status === 'completed').length
+      const dayCheckins = checkins.filter((c) => c.checkin_date === dateStr).length
 
-    const dayStudyMins = studySessions
-      .filter((s) => s.session_date === dateStr)
-      .reduce((acc, s) => acc + (s.duration_minutes || 0), 0)
+      const dayStudyMins = studySessions
+        .filter((s) => s.session_date === dateStr)
+        .reduce((acc, s) => acc + (s.duration_minutes || 0), 0)
 
-    return {
-      date: format(d, rangeDays <= 14 ? 'EEE dd/MM' : 'dd/MM', { locale: vi }),
-      'Nhiệm vụ hoàn thành': completedTasks,
-      'Tổng nhiệm vụ': dayTasks.length,
-      'Thói quen xong': dayCheckins,
-      'Thời gian học (giờ)': parseFloat((dayStudyMins / 60).toFixed(1)),
-    }
-  })
+      return {
+        date: format(d, rangeDays <= 14 ? 'EEE dd/MM' : 'dd/MM', { locale: vi }),
+        'Nhiệm vụ hoàn thành': completedTasks,
+        'Tổng nhiệm vụ': dayTasks.length,
+        'Thói quen xong': dayCheckins,
+        'Thời gian học (giờ)': parseFloat((dayStudyMins / 60).toFixed(1)),
+      }
+    })
+  }, [rangeDays, referenceDate, tasks, checkins, studySessions])
 
   // Category breakdown for tasks
   const categoryCounts: Record<string, number> = {}
@@ -155,7 +156,10 @@ export const ProgressPage: React.FC = () => {
       {/* Header & Date Range Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Phân Tích Tiến Độ & Năng Suất</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white tracking-tight">Phân Tích Tiến Độ & Năng Suất</h1>
+            {loading && <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />}
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             Báo cáo trực quan hóa dựa trên 100% dữ liệu thực tế ghi nhận từ hệ thống LIFEOS.
           </p>

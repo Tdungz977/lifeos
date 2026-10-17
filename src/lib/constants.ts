@@ -10,6 +10,10 @@ import {
   Flame,
   FileSpreadsheet,
   Settings,
+  Users,
+  Share2,
+  Scale,
+  Trophy,
 } from 'lucide-react'
 
 export const PRIMARY_NAVIGATION_ITEMS = [
@@ -18,6 +22,13 @@ export const PRIMARY_NAVIGATION_ITEMS = [
   { id: 'today', path: '/today', label: 'Kế hoạch hôm nay', icon: CheckSquare },
   { id: 'goals', path: '/goals', label: 'Mục tiêu', icon: Target },
   { id: 'calendar', path: '/calendar', label: 'Lịch', icon: Calendar },
+]
+
+export const SOCIAL_NAVIGATION_ITEMS = [
+  { id: 'social', path: '/social', label: 'Kết nối & Nhóm', icon: Users },
+  { id: 'growth-hub', path: '/growth-hub', label: 'Cùng phát triển', icon: Share2 },
+  { id: 'compare', path: '/compare', label: 'So sánh tiến độ', icon: Scale },
+  { id: 'challenges', path: '/challenges', label: 'Thử thách & Thi đua', icon: Trophy },
 ]
 
 export const SECONDARY_NAVIGATION_ITEMS = [
@@ -30,6 +41,7 @@ export const SECONDARY_NAVIGATION_ITEMS = [
 
 export const NAVIGATION_ITEMS = [
   ...PRIMARY_NAVIGATION_ITEMS,
+  ...SOCIAL_NAVIGATION_ITEMS,
   ...SECONDARY_NAVIGATION_ITEMS,
   { id: 'settings', path: '/settings', label: 'Cài đặt', icon: Settings },
 ]

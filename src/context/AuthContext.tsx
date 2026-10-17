@@ -15,7 +15,13 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: AuthError | Error | null }>
   refreshProfile: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>
-  completeOnboarding: (data: { displayName: string; timezone: string; dailyIntention?: string }) => Promise<{ error: any }>
+  completeOnboarding: (data: {
+    displayName: string
+    timezone: string
+    dailyIntention?: string
+    avatarUrl?: string
+    growthGoal?: string
+  }) => Promise<{ error: any }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -181,10 +187,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error }
   }
 
-  const completeOnboarding = async (data: { displayName: string; timezone: string; dailyIntention?: string }) => {
+  const completeOnboarding = async (data: {
+    displayName: string
+    timezone: string
+    dailyIntention?: string
+    avatarUrl?: string
+    growthGoal?: string
+  }) => {
     if (!user) return { error: new Error('Chưa đăng nhập') }
     const updates: Partial<Profile> = {
       display_name: data.displayName,
+      avatar_url: data.avatarUrl || null,
+      growth_goal: data.growthGoal || null,
       timezone: data.timezone,
       daily_intention: data.dailyIntention || 'Kỷ luật và kiên trì từng ngày.',
       is_onboarded: true,

@@ -2,15 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus,
   Target,
-  CheckCircle2,
   Calendar,
   Trash2,
   Edit2,
   Search,
-  Filter,
-  Eye,
   CheckSquare,
-  Sparkles,
+  Loader2,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -159,7 +156,10 @@ export const GoalsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Hệ Thống Quản Lý Mục Tiêu</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white tracking-tight">Hệ Thống Quản Lý Mục Tiêu</h1>
+            {loading && <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />}
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             Đặt mục tiêu, chia nhỏ nhiệm vụ, theo dõi tiến độ tự động qua từng nhiệm vụ hoàn thành.
           </p>

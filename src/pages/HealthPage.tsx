@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   HeartPulse,
   Moon,
@@ -8,8 +8,8 @@ import {
   Frown,
   Meh,
   Save,
-  Plus,
   TrendingUp,
+  Loader2,
 } from 'lucide-react'
 import {
   BarChart,
@@ -27,12 +27,10 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { HealthLog, Mood } from '@/types/database'
 import { Card, CardHeader } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
-import { formatViDate } from '@/lib/utils'
 
 export const HealthPage: React.FC = () => {
   const { user } = useAuth()
-  const todayStr = new Date().toISOString().split('T')[0]
+  const [todayStr] = useState(() => new Date().toISOString().split('T')[0])
 
   const [todayLog, setTodayLog] = useState<Partial<HealthLog>>({
     log_date: todayStr,
@@ -50,6 +48,7 @@ export const HealthPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savedSuccess, setSavedSuccess] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const fetchHealthLogs = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
@@ -87,8 +86,13 @@ export const HealthPage: React.FC = () => {
   }, [fetchHealthLogs])
 
   const handleSaveLog = async () => {
-    if (!user || !isSupabaseConfigured()) return
+    if (!user || !isSupabaseConfigured()) {
+      setSaveError('Vui lòng đăng nhập và kết nối Supabase để lưu nhật ký sức khỏe.')
+      setTimeout(() => setSaveError(''), 4000)
+      return
+    }
     setSaving(true)
+    setSaveError('')
 
     try {
       const { data, error } = await supabase
@@ -112,14 +116,16 @@ export const HealthPage: React.FC = () => {
         .select()
         .single()
 
-      if (!error && data) {
+      if (error) {
+        setSaveError(error.message || 'Lỗi khi lưu dữ liệu sức khỏe.')
+      } else if (data) {
         setTodayLog(data)
         setSavedSuccess(true)
         setTimeout(() => setSavedSuccess(false), 2000)
         fetchHealthLogs()
       }
-    } catch (err) {
-      console.error('Error saving health log:', err)
+    } catch (err: any) {
+      setSaveError(err.message || 'Lỗi khi lưu dữ liệu sức khỏe.')
     } finally {
       setSaving(false)
     }
@@ -139,23 +145,28 @@ export const HealthPage: React.FC = () => {
   }
 
   // 7-day trend chart data
-  const trendData = Array.from({ length: 7 }).map((_, i) => {
-    const d = subDays(new Date(), 6 - i)
-    const dateStr = format(d, 'yyyy-MM-dd')
-    const item = history.find((h) => h.log_date === dateStr)
-    return {
-      date: format(d, 'EEE dd/MM', { locale: vi }),
-      'Giấc ngủ (h)': item?.sleep_hours || 0,
-      'Nước uống (L)': item?.water_ml ? item.water_ml / 1000 : 0,
-    }
-  })
+  const trendData = useMemo(() => {
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = subDays(new Date(todayStr), 6 - i)
+      const dateStr = format(d, 'yyyy-MM-dd')
+      const item = history.find((h) => h.log_date === dateStr)
+      return {
+        date: format(d, 'EEE dd/MM', { locale: vi }),
+        'Giấc ngủ (h)': item?.sleep_hours || 0,
+        'Nước uống (L)': item?.water_ml ? item.water_ml / 1000 : 0,
+      }
+    })
+  }, [history, todayStr])
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Theo Dõi Thể Chất & Sức Khỏe</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white tracking-tight">Theo Dõi Thể Chất & Sức Khỏe</h1>
+            {loading && <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />}
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             Không gian ghi chép sức khỏe cá nhân, giấc ngủ, lượng nước và năng lượng hàng ngày.
           </p>
@@ -169,6 +180,12 @@ export const HealthPage: React.FC = () => {
           {savedSuccess ? 'Đã lưu thành công!' : 'Lưu nhật ký hôm nay'}
         </Button>
       </div>
+
+      {saveError && (
+        <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2">
+          <span>{saveError}</span>
+        </div>
+      )}
 
       {/* Main Today Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

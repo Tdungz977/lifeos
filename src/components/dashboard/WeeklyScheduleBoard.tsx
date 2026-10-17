@@ -19,12 +19,12 @@ import {
   X,
   AlertCircle,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
+  Share2,
 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
+import { GranularShareModal } from '@/components/modals/GranularShareModal'
 import { useAuth } from '@/context/AuthContext'
 import {
   PeriodOfDay,
@@ -60,6 +60,7 @@ export const WeeklyScheduleBoard: React.FC<WeeklyScheduleBoardProps> = ({
 
   // Quick Add Modal State
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [newTaskDay, setNewTaskDay] = useState<DayOfWeekIndex>(todayIdx)
   const [newTaskPeriod, setNewTaskPeriod] = useState<PeriodOfDay>('morning')
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -325,6 +326,16 @@ export const WeeklyScheduleBoard: React.FC<WeeklyScheduleBoardProps> = ({
             className="text-xs font-semibold h-8"
           >
             Thêm việc
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowShareModal(true)}
+            leftIcon={<Share2 className="w-3.5 h-3.5 text-[#B2A2FA]" />}
+            className="text-xs font-semibold h-8 border-[#7255F7]/30 hover:border-[#7255F7]/60 text-[#F3F4F6]"
+          >
+            Chia sẻ
           </Button>
 
           <Button
@@ -632,6 +643,7 @@ export const WeeklyScheduleBoard: React.FC<WeeklyScheduleBoardProps> = ({
                           )}
                           <span className="text-[10px] text-[#9CA3AF] font-mono">
                             {dayCompleted}/{dayTasks.length}
+                            {dayTasks.length > 0 && ` (${dayPercent}%)`}
                           </span>
                         </div>
                       </div>
@@ -876,6 +888,13 @@ export const WeeklyScheduleBoard: React.FC<WeeklyScheduleBoardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Granular Share Modal */}
+      <GranularShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        initialEntityType="schedule"
+      />
     </Card>
   )
 }
