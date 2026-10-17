@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, onOpe
           <Database className="w-3.5 h-3.5 shrink-0" />
           {!collapsed && (
             <span className="truncate">
-              {isConfigured ? 'Supabase đã kết nối' : 'Kết nối Supabase DB'}
+              {isConfigured ? 'Firebase đã kết nối' : 'Cấu hình Firebase Cloud'}
             </span>
           )}
           <span

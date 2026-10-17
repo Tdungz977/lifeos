@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Sparkles, Mail, Lock, ArrowLeft, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { updatePassword } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import confetti from 'canvas-confetti'
@@ -27,23 +28,11 @@ export const ResetPasswordPage: React.FC = () => {
   const [updateSuccess, setUpdateSuccess] = useState(false)
 
   useEffect(() => {
-    // 1. Check URL hash for Supabase recovery params
+    // Check URL query/hash for recovery params
+    const search = window.location.search
     const hash = window.location.hash
-    if (hash && (hash.includes('type=recovery') || hash.includes('access_token='))) {
+    if (search.includes('mode=resetPassword') || hash.includes('type=recovery')) {
       setIsRecoveryMode(true)
-    }
-
-    // 2. Listen to Supabase auth state change for PASSWORD_RECOVERY
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsRecoveryMode(true)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
     }
   }, [])
 
@@ -51,13 +40,9 @@ export const ResetPasswordPage: React.FC = () => {
     e.preventDefault()
     setErrorMsg('')
 
-    if (!isConfigured) {
-      setErrorMsg('Vui lòng kết nối Supabase trước khi thực hiện gửi email đặt lại mật khẩu.')
-      return
-    }
-
     setLoading(true)
-    const { error } = await resetPassword(email)
+    const { error } = await resetPassword(email.trim())
+    setLoading(false)
     setLoading(false)
 
     if (error) {
@@ -83,8 +68,9 @@ export const ResetPasswordPage: React.FC = () => {
 
     setUpdating(true)
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword })
-      if (error) throw error
+      if (auth.currentUser) {
+        await updatePassword(auth.currentUser, newPassword)
+      }
 
       setUpdateSuccess(true)
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } })

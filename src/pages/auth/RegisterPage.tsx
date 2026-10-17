@@ -15,7 +15,7 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
-import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal'
+import { FirebaseConfigModal } from '@/components/common/FirebaseConfigModal'
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate()
@@ -61,11 +61,6 @@ export const RegisterPage: React.FC = () => {
     setErrorMsg('')
     setSuccessMsg('')
 
-    if (!isConfigured) {
-      setShowConfig(true)
-      return
-    }
-
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email.trim())) {
@@ -89,21 +84,19 @@ export const RegisterPage: React.FC = () => {
 
     if (error) {
       const msg = error.message || ''
-      if (msg.includes('User already registered') || msg.includes('already exists')) {
+      if (msg.includes('User already registered') || msg.includes('already exists') || msg.includes('email-already-in-use')) {
         setErrorMsg('Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng Quên mật khẩu.')
-      } else if (msg.includes('Password should be at least')) {
+      } else if (msg.includes('Password should be at least') || msg.includes('weak-password')) {
         setErrorMsg('Mật khẩu phải có tối thiểu 6 ký tự.')
       } else {
         setErrorMsg(msg || 'Đăng ký không thành công. Vui lòng thử lại.')
       }
     } else {
-      if (data?.session) {
-        // Direct auto-confirmed login
+      if (data) {
         navigate('/onboarding')
       } else {
-        // Requires email verification
         setSuccessMsg(
-          'Đăng ký tài khoản thành công! Vui lòng kiểm tra hộp thư email của bạn để xác thực tài khoản (hoặc chuyển sang đăng nhập nếu dự án đã bật chế độ tự động kích hoạt).'
+          'Đăng ký tài khoản thành công! Vui lòng đăng nhập để bắt đầu trải nghiệm.'
         )
       }
     }
@@ -279,7 +272,7 @@ export const RegisterPage: React.FC = () => {
         </div>
       </div>
 
-      <SupabaseConfigModal isOpen={showConfig} onClose={() => setShowConfig(false)} />
+      <FirebaseConfigModal isOpen={showConfig} onClose={() => setShowConfig(false)} />
     </div>
   )
 }

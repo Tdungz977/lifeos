@@ -16,7 +16,7 @@ import { Card, CardHeader } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { AvatarPicker } from '@/components/common/AvatarPicker'
-import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal'
+import { FirebaseConfigModal } from '@/components/common/FirebaseConfigModal'
 
 export const SettingsPage: React.FC = () => {
   const { user, profile, updateProfile, signOut, isConfigured } = useAuth()
@@ -433,12 +433,22 @@ export const SettingsPage: React.FC = () => {
         />
         <div className="space-y-4">
           <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Chính sách Row Level Security (RLS) đang bảo vệ dữ liệu của bạn</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Bảo mật Firebase Cloud Security & Mã hóa</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowConfigModal(true)}
+                className="text-xs text-indigo-400 hover:text-indigo-300"
+              >
+                Cấu hình Firebase
+              </Button>
             </div>
             <p className="text-slate-400 leading-relaxed">
-              Toàn bộ mục tiêu, nhiệm vụ, thói quen và lịch trình cá nhân được cô lập tuyệt đối ở tầng cơ sở dữ liệu PostgreSQL. Không một người dùng nào khác có thể truy vấn dữ liệu của bạn trừ khi bạn chủ động cấp quyền chia sẻ (Share Permissions).
+              Toàn bộ mục tiêu, nhiệm vụ, thói quen và lịch trình cá nhân được cô lập tuyệt đối trên Firebase Cloud Firestore và bộ nhớ cục bộ an toàn. Không một người dùng nào khác có thể truy vấn dữ liệu của bạn trừ khi bạn chủ động cấp quyền chia sẻ (Share Permissions).
             </p>
           </div>
 
@@ -459,7 +469,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </Card>
 
-      <SupabaseConfigModal isOpen={showConfigModal} onClose={() => setShowConfigModal(false)} />
+      <FirebaseConfigModal isOpen={showConfigModal} onClose={() => setShowConfigModal(false)} />
     </div>
   )
 }

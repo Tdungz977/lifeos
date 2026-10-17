@@ -3,7 +3,7 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { QuickAddModal } from '@/components/modals/QuickAddModal'
-import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal'
+import { FirebaseConfigModal } from '@/components/common/FirebaseConfigModal'
 import { PRIMARY_NAVIGATION_ITEMS, SECONDARY_NAVIGATION_ITEMS, SOCIAL_NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuth } from '@/context/AuthContext'
 import { X, AlertTriangle, Sparkles, Settings, LogIn, UserPlus, LogOut } from 'lucide-react'
@@ -196,7 +196,7 @@ export const AppLayout: React.FC = () => {
                 }}
                 className="w-full py-2 px-3 rounded-xl border border-[#282538] bg-[#191725] text-[11px] font-medium text-[#9CA3AF] hover:text-[#F3F4F6] flex items-center justify-center gap-1.5 transition-all"
               >
-                Cấu hình Supabase DB
+                Cấu hình Firebase Cloud
               </button>
             </div>
           </div>
@@ -205,24 +205,6 @@ export const AppLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        {/* Banner if Supabase not configured */}
-        {!isConfigured && (
-          <div className="bg-amber-950/40 border-b border-amber-800/60 px-4 py-2 flex items-center justify-between text-xs text-amber-300">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>
-                <strong>Lưu ý:</strong> Chưa cấu hình Supabase URL & Anon Key. Dữ liệu chưa đồng bộ với cơ sở dữ liệu đám mây.
-              </span>
-            </div>
-            <button
-              onClick={() => setConfigModalOpen(true)}
-              className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 font-semibold underline shrink-0 ml-2"
-            >
-              Cấu hình ngay
-            </button>
-          </div>
-        )}
-
         {/* Header */}
         <Header
           onOpenQuickAdd={() => setQuickAddOpen(true)}
@@ -240,7 +222,7 @@ export const AppLayout: React.FC = () => {
         isOpen={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
       />
-      <SupabaseConfigModal
+      <FirebaseConfigModal
         isOpen={configModalOpen}
         onClose={() => setConfigModalOpen(false)}
       />

@@ -21,7 +21,7 @@ export const ProtectedRoute: React.FC = () => {
     )
   }
 
-  // If Supabase is configured, enforce strict Supabase Auth login
+  // If Firebase is configured, enforce strict Firebase Auth login
   if (isConfigured && !user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
