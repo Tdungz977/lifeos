@@ -78,6 +78,18 @@ export const app: FirebaseApp =
 export const auth: Auth = getAuth(app)
 export const db: Firestore = getFirestore(app)
 
+// Safe Analytics initialization
+export let analytics: any = null
+if (typeof window !== 'undefined' && isFirebaseConfigured() && effectiveConfig.measurementId) {
+  import('firebase/analytics').then(({ getAnalytics, isSupported }) => {
+    isSupported().then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app)
+      }
+    }).catch(() => {})
+  }).catch(() => {})
+}
+
 export function saveFirebaseConfig(config: FirebaseConfig) {
   if (typeof window !== 'undefined') {
     localStorage.setItem('lifeos_firebase_config', JSON.stringify(config))

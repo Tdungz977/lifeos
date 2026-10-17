@@ -83,24 +83,22 @@ export const RegisterPage: React.FC = () => {
     setLoading(false)
 
     if (error) {
-      const msg = error.message || ''
-      if (msg.includes('User already registered') || msg.includes('already exists')) {
+      const msg = error.message || error.code || ''
+      if (
+        msg.includes('User already registered') ||
+        msg.includes('already exists') ||
+        msg.includes('email-already-in-use')
+      ) {
         setErrorMsg('Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng Quên mật khẩu.')
-      } else if (msg.includes('Password should be at least')) {
+      } else if (msg.includes('Password should be at least') || msg.includes('weak-password')) {
         setErrorMsg('Mật khẩu phải có tối thiểu 6 ký tự.')
+      } else if (msg.includes('operation-not-allowed') || msg.includes('CONFIGURATION_NOT_FOUND')) {
+        setErrorMsg('Vui lòng bật tính năng Email/Password trong tab Authentication của Firebase Console.')
       } else {
         setErrorMsg(msg || 'Đăng ký không thành công. Vui lòng thử lại.')
       }
     } else {
-      if (data?.session) {
-        // Direct auto-confirmed login
-        navigate('/onboarding')
-      } else {
-        // Requires email verification
-        setSuccessMsg(
-          'Đăng ký tài khoản thành công! Vui lòng kiểm tra hộp thư email của bạn để xác thực tài khoản (hoặc chuyển sang đăng nhập nếu dự án đã bật chế độ tự động kích hoạt).'
-        )
-      }
+      navigate('/onboarding')
     }
   }
 

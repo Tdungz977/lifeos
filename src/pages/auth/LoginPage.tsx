@@ -38,13 +38,22 @@ export const LoginPage: React.FC = () => {
     setLoading(false)
 
     if (error) {
-      const msg = error.message || ''
-      if (msg.includes('Invalid login credentials')) {
+      const msg = error.message || error.code || ''
+      if (
+        msg.includes('Invalid login credentials') ||
+        msg.includes('invalid-credential') ||
+        msg.includes('wrong-password') ||
+        msg.includes('user-not-found')
+      ) {
         setErrorMsg('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.')
       } else if (msg.includes('Email not confirmed')) {
         setErrorMsg('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư email của bạn.')
-      } else if (msg.includes('Too many requests')) {
+      } else if (msg.includes('Too many requests') || msg.includes('too-many-requests')) {
         setErrorMsg('Quá nhiều lần đăng nhập không thành công. Vui lòng đợi trong giây lát và thử lại.')
+      } else if (msg.includes('operation-not-allowed') || msg.includes('CONFIGURATION_NOT_FOUND')) {
+        setErrorMsg('Vui lòng bật tính năng Email/Password trong tab Authentication của Firebase Console.')
+      } else if (msg.includes('invalid-email')) {
+        setErrorMsg('Định dạng email không hợp lệ.')
       } else {
         setErrorMsg(msg || 'Đăng nhập không thành công. Vui lòng thử lại.')
       }
