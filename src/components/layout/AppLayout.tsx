@@ -194,16 +194,6 @@ export const AppLayout: React.FC = () => {
                   </button>
                 </div>
               )}
-
-              <button
-                onClick={() => {
-                  setMobileNavOpen(false)
-                  setConfigModalOpen(true)
-                }}
-                className="w-full py-2 px-3 rounded-xl border border-[#282538] bg-[#191725] text-[11px] font-medium text-[#9CA3AF] hover:text-[#F3F4F6] flex items-center justify-center gap-1.5 transition-all"
-              >
-                Cấu hình Supabase DB
-              </button>
             </div>
           </div>
         </div>

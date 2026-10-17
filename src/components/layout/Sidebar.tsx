@@ -63,32 +63,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, onOpe
         </button>
       </div>
 
-      {/* Database Connection Pill */}
-      <div className="px-3 pt-3">
-        <button
-          onClick={onOpenConfig}
-          className={cn(
-            'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer',
-            isConfigured
-              ? 'bg-[#0E281F] border-[#10B981]/30 text-[#34D399] hover:bg-[#0E281F]/80'
-              : 'bg-[#2A1D0B] border-[#F59E0B]/30 text-[#FBBF24] hover:bg-[#2A1D0B]/80'
-          )}
-        >
-          <Database className="w-3.5 h-3.5 shrink-0" />
-          {!collapsed && (
-            <span className="truncate">
-              {isConfigured ? 'Supabase đã kết nối' : 'Kết nối Supabase DB'}
-            </span>
-          )}
-          <span
-            className={cn(
-              'w-2 h-2 rounded-full shrink-0 ml-auto',
-              isConfigured ? 'bg-[#10B981] shadow-sm shadow-[#10B981]' : 'bg-[#F59E0B] animate-pulse'
-            )}
-          />
-        </button>
-      </div>
-
       {/* Navigation Links */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 scrollbar-thin">
         {PRIMARY_NAVIGATION_ITEMS.map((item) => {

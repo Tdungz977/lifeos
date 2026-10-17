@@ -1,12 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Menu, Calendar as CalendarIcon, Quote, Moon as MoonIcon, LogIn, UserPlus, Flame } from 'lucide-react'
+import { Plus, Menu, Calendar as CalendarIcon, Quote, Moon as MoonIcon, LogIn, UserPlus } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/common/Button'
 import { formatViDate, getGreeting } from '@/lib/utils'
 import { NotificationDropdown } from '@/components/common/NotificationDropdown'
-import { isFirebaseConfigured } from '@/lib/firebase'
-import { FirebaseConfigModal } from '@/components/common/FirebaseConfigModal'
 
 interface HeaderProps {
   onOpenQuickAdd: () => void
@@ -15,8 +13,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd, onToggleMobileNav }) => {
   const { user, profile } = useAuth()
-  const [showFirebaseModal, setShowFirebaseModal] = useState(false)
-  const firebaseReady = isFirebaseConfigured()
   const today = new Date()
   const greeting = getGreeting()
   const displayName = profile?.display_name || user?.user_metadata?.full_name || (user ? 'Chiến binh' : '')
@@ -54,21 +50,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd, onToggleMobileNa
 
       {/* Right Actions */}
       <div className="flex items-center gap-2.5">
-        {/* Firebase Cloud status indicator & config button */}
-        <button
-          type="button"
-          onClick={() => setShowFirebaseModal(true)}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-            firebaseReady
-              ? 'bg-[#0E281F] border-[#10B981]/40 text-[#34D399] hover:bg-[#0E281F]/80'
-              : 'bg-[#191725] border-[#F59E0B]/30 text-[#FBBF24] hover:bg-[#282538]'
-          }`}
-          title={firebaseReady ? 'Firebase Cloud đã sẵn sàng' : 'Cấu hình kết nối Firebase'}
-        >
-          <Flame className={`w-3.5 h-3.5 ${firebaseReady ? 'text-[#34D399]' : 'text-[#F59E0B]'}`} />
-          <span className="hidden sm:inline">{firebaseReady ? 'Firebase' : 'Kết nối Firebase'}</span>
-        </button>
-
         {!user ? (
           <div className="flex items-center gap-2">
             <Link
@@ -115,11 +96,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd, onToggleMobileNa
           </>
         )}
       </div>
-
-      <FirebaseConfigModal
-        isOpen={showFirebaseModal}
-        onClose={() => setShowFirebaseModal(false)}
-      />
     </header>
   )
 }

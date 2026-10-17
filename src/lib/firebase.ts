@@ -12,15 +12,26 @@ export interface FirebaseConfig {
   measurementId?: string
 }
 
+// Default project config for tesst-cb1eb
+const defaultProjectConfig: FirebaseConfig = {
+  apiKey: 'AIzaSyAVY0bqNsD80rwL_RpDoWSlOqoOZi8z3cg',
+  authDomain: 'tesst-cb1eb.firebaseapp.com',
+  projectId: 'tesst-cb1eb',
+  storageBucket: 'tesst-cb1eb.firebasestorage.app',
+  messagingSenderId: '465084326793',
+  appId: '1:465084326793:web:a9e2247a5d4c19fb93f758',
+  measurementId: 'G-DT41TZP6XF',
+}
+
 // 1. Read environment variables from .env
 const envConfig: FirebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || defaultProjectConfig.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || defaultProjectConfig.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || defaultProjectConfig.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || defaultProjectConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || defaultProjectConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || defaultProjectConfig.appId,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || defaultProjectConfig.measurementId,
 }
 
 // 2. Read runtime config from localStorage
@@ -38,13 +49,13 @@ const getStoredConfig = (): FirebaseConfig | null => {
 const localConfig = getStoredConfig()
 
 export const activeFirebaseConfig: FirebaseConfig = {
-  apiKey: envConfig.apiKey || localConfig?.apiKey || '',
-  authDomain: envConfig.authDomain || localConfig?.authDomain || '',
-  projectId: envConfig.projectId || localConfig?.projectId || '',
-  storageBucket: envConfig.storageBucket || localConfig?.storageBucket || '',
-  messagingSenderId: envConfig.messagingSenderId || localConfig?.messagingSenderId || '',
-  appId: envConfig.appId || localConfig?.appId || '',
-  measurementId: envConfig.measurementId || localConfig?.measurementId || '',
+  apiKey: localConfig?.apiKey || envConfig.apiKey,
+  authDomain: localConfig?.authDomain || envConfig.authDomain,
+  projectId: localConfig?.projectId || envConfig.projectId,
+  storageBucket: localConfig?.storageBucket || envConfig.storageBucket,
+  messagingSenderId: localConfig?.messagingSenderId || envConfig.messagingSenderId,
+  appId: localConfig?.appId || envConfig.appId,
+  measurementId: localConfig?.measurementId || envConfig.measurementId,
 }
 
 export const isFirebaseConfigured = (): boolean => {
