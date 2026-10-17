@@ -3,7 +3,7 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { QuickAddModal } from '@/components/modals/QuickAddModal'
-import { FirebaseConfigModal } from '@/components/common/FirebaseConfigModal'
+import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal'
 import { PRIMARY_NAVIGATION_ITEMS, SECONDARY_NAVIGATION_ITEMS, SOCIAL_NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuth } from '@/context/AuthContext'
 import { X, AlertTriangle, Sparkles, Settings, LogIn, UserPlus, LogOut } from 'lucide-react'
@@ -29,7 +29,13 @@ export const AppLayout: React.FC = () => {
   }, [])
 
   return (
-    <div className="relative min-h-screen bg-background text-on-surface flex flex-col md:flex-row antialiased overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#090B12] text-[#F3F4F6] flex flex-col md:flex-row antialiased selection:bg-[#7255F7]/30 selection:text-[#EDEAF8] overflow-x-hidden">
+      {/* Subtle Ambient Atmosphere */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* Soft top-center purple glow */}
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-[#7255F7]/08 blur-[140px] rounded-full" />
+      </div>
+
       {/* Desktop Collapsible Sidebar */}
       <Sidebar
         collapsed={collapsed}
@@ -41,16 +47,16 @@ export const AppLayout: React.FC = () => {
       {mobileNavOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => setMobileNavOpen(false)}
           />
-          <div className="relative w-72 bg-surface-container-lowest text-on-surface border-r border-slate-200/80 p-4 flex flex-col h-full z-10 animate-fade-in">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200/80">
+          <div className="relative w-72 bg-[#110F1D] border-r border-[#282538] p-4 flex flex-col h-full z-10 animate-fade-in">
+            <div className="flex items-center justify-between pb-4 border-b border-[#282538]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shadow-md shadow-secondary/25">
-                  <span className="material-symbols-outlined text-white text-base">timelapse</span>
+                <div className="w-8 h-8 rounded-lg bg-[#7255F7] flex items-center justify-center shadow-md shadow-[#7255F7]/25">
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
-                <span className="font-extrabold text-on-surface text-base tracking-tight">FlowTime</span>
+                <span className="font-extrabold text-[#F3F4F6] text-base tracking-tight">LIFEOS</span>
               </div>
               <button
                 onClick={() => setMobileNavOpen(false)}
@@ -196,7 +202,7 @@ export const AppLayout: React.FC = () => {
                 }}
                 className="w-full py-2 px-3 rounded-xl border border-[#282538] bg-[#191725] text-[11px] font-medium text-[#9CA3AF] hover:text-[#F3F4F6] flex items-center justify-center gap-1.5 transition-all"
               >
-                Cấu hình Firebase Cloud
+                Cấu hình Supabase DB
               </button>
             </div>
           </div>
@@ -205,6 +211,24 @@ export const AppLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        {/* Banner if Supabase not configured */}
+        {!isConfigured && (
+          <div className="bg-amber-950/40 border-b border-amber-800/60 px-4 py-2 flex items-center justify-between text-xs text-amber-300">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                <strong>Lưu ý:</strong> Chưa cấu hình Supabase URL & Anon Key. Dữ liệu chưa đồng bộ với cơ sở dữ liệu đám mây.
+              </span>
+            </div>
+            <button
+              onClick={() => setConfigModalOpen(true)}
+              className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 font-semibold underline shrink-0 ml-2"
+            >
+              Cấu hình ngay
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <Header
           onOpenQuickAdd={() => setQuickAddOpen(true)}
@@ -222,7 +246,7 @@ export const AppLayout: React.FC = () => {
         isOpen={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
       />
-      <FirebaseConfigModal
+      <SupabaseConfigModal
         isOpen={configModalOpen}
         onClose={() => setConfigModalOpen(false)}
       />

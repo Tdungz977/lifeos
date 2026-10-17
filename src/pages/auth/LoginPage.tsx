@@ -14,7 +14,7 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
-import { FirebaseConfigModal } from '@/components/common/FirebaseConfigModal'
+import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
@@ -33,17 +33,22 @@ export const LoginPage: React.FC = () => {
     e.preventDefault()
     setErrorMsg('')
 
+    if (!isConfigured) {
+      setShowConfig(true)
+      return
+    }
+
     setLoading(true)
     const { error } = await signIn(email.trim(), password)
     setLoading(false)
 
     if (error) {
       const msg = error.message || ''
-      if (msg.includes('Invalid login credentials') || msg.includes('user-not-found') || msg.includes('wrong-password')) {
+      if (msg.includes('Invalid login credentials')) {
         setErrorMsg('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.')
       } else if (msg.includes('Email not confirmed')) {
         setErrorMsg('Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư email của bạn.')
-      } else if (msg.includes('Too many requests') || msg.includes('too-many-requests')) {
+      } else if (msg.includes('Too many requests')) {
         setErrorMsg('Quá nhiều lần đăng nhập không thành công. Vui lòng đợi trong giây lát và thử lại.')
       } else {
         setErrorMsg(msg || 'Đăng nhập không thành công. Vui lòng thử lại.')
@@ -70,6 +75,23 @@ export const LoginPage: React.FC = () => {
             Hệ điều hành quản lý mục tiêu, kế hoạch và kỷ luật cá nhân bền vững.
           </p>
         </div>
+
+        {/* Database Config Banner if not configured */}
+        {!isConfigured && (
+          <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/50 text-amber-300 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 shrink-0 text-amber-400" />
+              <span>Chưa kết nối Supabase project</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowConfig(true)}
+              className="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold border border-amber-500/40 text-[11px] cursor-pointer"
+            >
+              Cấu hình DB
+            </button>
+          </div>
+        )}
 
         {/* Login Card */}
         <div className="surface-card rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-2xl backdrop-blur-xl space-y-5">
@@ -169,7 +191,7 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      <FirebaseConfigModal isOpen={showConfig} onClose={() => setShowConfig(false)} />
+      <SupabaseConfigModal isOpen={showConfig} onClose={() => setShowConfig(false)} />
     </div>
   )
 }
