@@ -61,11 +61,6 @@ export const RegisterPage: React.FC = () => {
     setErrorMsg('')
     setSuccessMsg('')
 
-    if (!isConfigured) {
-      setShowConfig(true)
-      return
-    }
-
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email.trim())) {

@@ -51,11 +51,6 @@ export const ResetPasswordPage: React.FC = () => {
     e.preventDefault()
     setErrorMsg('')
 
-    if (!isConfigured) {
-      setErrorMsg('Vui lòng kết nối Supabase trước khi thực hiện gửi email đặt lại mật khẩu.')
-      return
-    }
-
     setLoading(true)
     const { error } = await resetPassword(email)
     setLoading(false)

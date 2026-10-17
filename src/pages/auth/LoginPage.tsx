@@ -33,11 +33,6 @@ export const LoginPage: React.FC = () => {
     e.preventDefault()
     setErrorMsg('')
 
-    if (!isConfigured) {
-      setShowConfig(true)
-      return
-    }
-
     setLoading(true)
     const { error } = await signIn(email.trim(), password)
     setLoading(false)
@@ -75,23 +70,6 @@ export const LoginPage: React.FC = () => {
             Hệ điều hành quản lý mục tiêu, kế hoạch và kỷ luật cá nhân bền vững.
           </p>
         </div>
-
-        {/* Database Config Banner if not configured */}
-        {!isConfigured && (
-          <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/50 text-amber-300 text-xs flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 shrink-0 text-amber-400" />
-              <span>Chưa kết nối Supabase project</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowConfig(true)}
-              className="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold border border-amber-500/40 text-[11px] cursor-pointer"
-            >
-              Cấu hình DB
-            </button>
-          </div>
-        )}
 
         {/* Login Card */}
         <div className="surface-card rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-2xl backdrop-blur-xl space-y-5">
