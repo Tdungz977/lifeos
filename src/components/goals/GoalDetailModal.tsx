@@ -17,8 +17,8 @@ import { Input } from '@/components/common/Input'
 import { ProgressBar } from '@/components/common/ProgressBar'
 import { Badge } from '@/components/common/Badge'
 import { Goal, GoalMilestone, Task } from '@/types/database'
-import { getGoalDetail, toggleMilestone, addMilestoneToGoal } from '@/services/goalService'
-import { toggleTaskStatus, syncGoalProgress } from '@/services/taskService'
+import { getGoalDetail, toggleMilestone, addMilestoneToGoal, updateGoal } from '@/services/goalService'
+import { toggleTaskStatus, syncGoalProgress, createTask } from '@/services/taskService'
 import { supabase } from '@/lib/supabase'
 import { GOAL_STATUS_MAP } from '@/lib/constants'
 import { formatViDate } from '@/lib/utils'
@@ -119,9 +119,8 @@ export const GoalDetailModal: React.FC<GoalDetailModalProps> = ({
     e.preventDefault()
     if (!newTaskTitle.trim() || !goalId) return
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({
+    try {
+      const newTask = await createTask({
         user_id: userId,
         goal_id: goalId,
         title: newTaskTitle.trim(),
@@ -130,12 +129,10 @@ export const GoalDetailModal: React.FC<GoalDetailModalProps> = ({
         priority: 'high',
         category: goal?.category || 'general',
         status: 'pending',
+        is_priority: false,
       })
-      .select('*, goal:goals(id, title, category)')
-      .single()
 
-    if (!error && data) {
-      setTasks((prev) => [...prev, data])
+      setTasks((prev) => [...prev, newTask])
       setIsAddingTask(false)
       setNewTaskTitle('')
       // Recalculate progress
@@ -144,18 +141,15 @@ export const GoalDetailModal: React.FC<GoalDetailModalProps> = ({
         setGoal({ ...goal, current_value: newPct })
       }
       onGoalUpdated()
+    } catch (err) {
+      console.error('Error creating task for goal:', err)
     }
   }
 
   const handleSaveReflection = async () => {
     if (!goalId) return
     setSavingReflection(true)
-    await supabase
-      .from('goals')
-      .update({ reflection_notes: reflection })
-      .eq('id', goalId)
-      .eq('user_id', userId)
-
+    await updateGoal(goalId, { reflection_notes: reflection }, userId)
     setSavingReflection(false)
     setReflectionSaved(true)
     setTimeout(() => setReflectionSaved(false), 2000)

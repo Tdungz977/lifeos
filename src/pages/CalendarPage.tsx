@@ -41,6 +41,8 @@ import { Badge } from '@/components/common/Badge'
 import { GranularShareModal } from '@/components/modals/GranularShareModal'
 import { sharingService } from '@/services/sharingService'
 import { formatViDate } from '@/lib/utils'
+import { createTask, getTasksByDateRange } from '@/services/taskService'
+import { getActiveGoals } from '@/services/goalService'
 
 type CalendarViewMode = 'month' | 'week' | 'day'
 
@@ -76,7 +78,7 @@ export const CalendarPage: React.FC = () => {
   }, [user])
 
   const fetchCalendarData = useCallback(async () => {
-    if (!user || !isSupabaseConfigured()) {
+    if (!user) {
       setLoading(false)
       return
     }
@@ -87,28 +89,22 @@ export const CalendarPage: React.FC = () => {
       const end = format(endOfWeek(endOfMonth(addMonths(currentDate, 1)), { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
       if (selectedOwnerId === 'me') {
-        const [taskRes, goalRes, subRes] = await Promise.all([
-          supabase
-            .from('tasks')
-            .select('*, goal:goals(id, title, category)')
-            .eq('user_id', user.id)
-            .gte('due_date', start)
-            .lte('due_date', end),
-          supabase
-            .from('goals')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('is_archived', false),
-          supabase
+        const [loadedTasks, loadedGoals] = await Promise.all([
+          getTasksByDateRange(user.id, start, end),
+          getActiveGoals(user.id),
+        ])
+
+        setTasks(loadedTasks)
+        setGoals(loadedGoals)
+
+        if (isSupabaseConfigured()) {
+          const subRes = await supabase
             .from('subjects')
             .select('*')
             .eq('user_id', user.id)
-            .eq('is_archived', false),
-        ])
-
-        if (taskRes.data) setTasks(taskRes.data)
-        if (goalRes.data) setGoals(goalRes.data)
-        if (subRes.data) setSubjects(subRes.data)
+            .eq('is_archived', false)
+          if (subRes.data) setSubjects(subRes.data)
+        }
       } else {
         // Fetch friend's shared schedule tasks
         const sharedTasks = await sharingService.fetchSharedScheduleTasks(
@@ -171,11 +167,10 @@ export const CalendarPage: React.FC = () => {
 
   const handleCreateTaskFromCalendar = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTaskTitle.trim() || !user || !isSupabaseConfigured()) return
+    if (!newTaskTitle.trim() || !user) return
 
-    const { data } = await supabase
-      .from('tasks')
-      .insert({
+    try {
+      const newTask = await createTask({
         user_id: user.id,
         title: newTaskTitle.trim(),
         due_date: selectedDateStr,
@@ -184,14 +179,14 @@ export const CalendarPage: React.FC = () => {
         priority: newTaskPriority as any,
         category: 'general',
         status: 'pending',
+        is_priority: false,
       })
-      .select('*, goal:goals(id, title, category)')
-      .single()
 
-    if (data) {
-      setTasks((prev) => [...prev, data])
+      setTasks((prev) => [...prev, newTask])
       setIsTaskModalOpen(false)
       setNewTaskTitle('')
+    } catch (err) {
+      console.error('Error creating task from calendar:', err)
     }
   }
 

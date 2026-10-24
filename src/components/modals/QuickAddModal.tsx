@@ -6,6 +6,9 @@ import { Input } from '@/components/common/Input'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import { GOAL_CATEGORIES, TASK_PRIORITIES } from '@/lib/constants'
+import { createTask } from '@/services/taskService'
+import { createGoal } from '@/services/goalService'
+import { getLocalHabits, saveLocalHabits } from '@/services/habitService'
 
 interface QuickAddModalProps {
   isOpen: boolean
@@ -62,11 +65,6 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({ isOpen, onClose, o
       return
     }
 
-    if (!isSupabaseConfigured()) {
-      setErrorMsg('Vui lòng kết nối Supabase trước khi tạo dữ liệu thực tế.')
-      return
-    }
-
     setLoading(true)
     setErrorMsg('')
     setSuccessMsg('')
@@ -74,52 +72,92 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({ isOpen, onClose, o
     try {
       if (activeTab === 'task') {
         if (!taskTitle.trim()) throw new Error('Vui lòng nhập tên công việc')
-        const { error } = await supabase.from('tasks').insert({
+        await createTask({
           user_id: user.id,
           title: taskTitle.trim(),
           due_date: taskDueDate,
-          priority: taskPriority,
+          priority: taskPriority as any,
           category: taskCategory,
           estimated_duration: parseInt(taskDuration) || 30,
           status: 'pending',
+          is_priority: false,
         })
-        if (error) throw error
         setSuccessMsg('Đã tạo công việc thành công!')
       } else if (activeTab === 'goal') {
         if (!goalTitle.trim()) throw new Error('Vui lòng nhập tên mục tiêu')
-        const { error } = await supabase.from('goals').insert({
+        await createGoal({
           user_id: user.id,
           title: goalTitle.trim(),
           category: goalCategory,
           target_date: goalTargetDate || null,
-          goal_type: goalType,
-          status: 'in_progress',
+          goal_type: goalType as any,
+          priority: 'high',
           current_value: 0,
           target_value: 100,
+          unit: '%',
+          status: 'in_progress',
+          start_date: new Date().toISOString().split('T')[0],
+          is_archived: false,
         })
-        if (error) throw error
         setSuccessMsg('Đã tạo mục tiêu thành công!')
       } else if (activeTab === 'habit') {
         if (!habitName.trim()) throw new Error('Vui lòng nhập tên thói quen')
-        const { error } = await supabase.from('habits').insert({
+        const now = new Date().toISOString()
+        const habitId = crypto.randomUUID()
+        const payload = {
+          id: habitId,
           user_id: user.id,
           name: habitName.trim(),
+          description: null,
           category: habitCategory,
-          frequency: habitFrequency,
+          frequency: habitFrequency as any,
+          schedule_days: [0, 1, 2, 3, 4, 5, 6],
+          target_per_day: 1,
+          start_date: now.split('T')[0],
           is_active: true,
-        })
-        if (error) throw error
+          created_at: now,
+          updated_at: now,
+        }
+        const localHabits = getLocalHabits(user.id)
+        saveLocalHabits(user.id, [payload, ...localHabits])
+
+        if (isSupabaseConfigured()) {
+          try {
+            await supabase.from('habits').insert(payload)
+          } catch (e) {
+            console.warn('Supabase insert habit failed:', e)
+          }
+        }
         setSuccessMsg('Đã tạo thói quen thành công!')
       } else if (activeTab === 'learning') {
         if (!subjectName.trim()) throw new Error('Vui lòng nhập môn học/kỹ năng')
-        const { error } = await supabase.from('subjects').insert({
+        const now = new Date().toISOString()
+        const subjectId = crypto.randomUUID()
+        const payload = {
+          id: subjectId,
           user_id: user.id,
           name: subjectName.trim(),
           category: subjectCategory,
           target_outcome: subjectOutcome.trim() || null,
           progress: 0,
-        })
-        if (error) throw error
+          resource_urls: [],
+          is_archived: false,
+          created_at: now,
+          updated_at: now,
+        }
+        try {
+          const raw = localStorage.getItem(`lifeos_subjects_${user.id}`)
+          const localSubs = raw ? JSON.parse(raw) : []
+          localStorage.setItem(`lifeos_subjects_${user.id}`, JSON.stringify([payload, ...localSubs]))
+        } catch {}
+
+        if (isSupabaseConfigured()) {
+          try {
+            await supabase.from('subjects').insert(payload)
+          } catch (e) {
+            console.warn('Supabase insert subject failed:', e)
+          }
+        }
         setSuccessMsg('Đã tạo môn học thành công!')
       }
 

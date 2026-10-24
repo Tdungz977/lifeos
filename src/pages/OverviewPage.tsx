@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { Task, Goal, Habit } from '@/types/database'
-import { toggleTaskStatus, getOverdueTasks } from '@/services/taskService'
+import { toggleTaskStatus, getOverdueTasks, getTodayTasks } from '@/services/taskService'
 import { getGoalsWithCounts } from '@/services/goalService'
 import { Card } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
@@ -36,7 +36,7 @@ interface DashboardTask {
   notes?: string
   is_priority?: boolean
   isFromMoon?: boolean
-  goal?: { id: string; title: string; category?: string }
+  goal?: { id: string; title: string; category?: string } | null
 }
 
 export const OverviewPage: React.FC = () => {
@@ -57,20 +57,11 @@ export const OverviewPage: React.FC = () => {
     let resolvedGoals: Goal[] = []
     let resolvedHabits: Habit[] = []
 
-    const cloudActive = isSupabaseConfigured() && user
-
-    if (cloudActive) {
+    if (user) {
       try {
         setLoading(true)
-        // 1. Fetch Today's Tasks from Cloud
-        const { data: taskData } = await supabase
-          .from('tasks')
-          .select('*, goal:goals(id, title, category)')
-          .eq('user_id', user.id)
-          .eq('due_date', todayStr)
-          .order('is_priority', { ascending: false })
-          .order('start_time', { ascending: true, nullsFirst: false })
-          .order('created_at', { ascending: true })
+        // 1. Fetch Today's Tasks from taskService (Hybrid Local & Cloud)
+        const taskData = await getTodayTasks(user.id, todayStr)
 
         if (taskData && taskData.length > 0) {
           resolvedTasks = taskData.map((t) => ({

@@ -25,11 +25,13 @@ import { Task, Goal } from '@/types/database'
 import {
   getTodayTasks,
   getOverdueTasks,
+  createTask,
   toggleTaskStatus,
   rescheduleTask,
   deleteTaskWithSync,
   syncGoalProgress,
 } from '@/services/taskService'
+import { getActiveGoals } from '@/services/goalService'
 import { Card } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
@@ -56,6 +58,8 @@ export const TodayPage: React.FC = () => {
 
   // Create Task Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
@@ -77,7 +81,7 @@ export const TodayPage: React.FC = () => {
   const [pomoMode, setPomoMode] = useState<'work' | 'break'>('work')
 
   const loadData = useCallback(async () => {
-    if (!user || !isSupabaseConfigured()) {
+    if (!user) {
       setLoading(false)
       return
     }
@@ -87,12 +91,12 @@ export const TodayPage: React.FC = () => {
       const [todayData, overdueData, goalsData] = await Promise.all([
         getTodayTasks(user.id, todayStr),
         getOverdueTasks(user.id, todayStr),
-        supabase.from('goals').select('*').eq('user_id', user.id).eq('is_archived', false),
+        getActiveGoals(user.id),
       ])
 
       setTasks(todayData)
       setOverdueTasks(overdueData)
-      if (goalsData.data) setGoals(goalsData.data)
+      setGoals(goalsData)
     } catch (err) {
       console.error('Error fetching today tasks:', err)
     } finally {
@@ -102,6 +106,21 @@ export const TodayPage: React.FC = () => {
 
   useEffect(() => {
     loadData()
+  }, [loadData])
+
+  // Listen for task update events across components
+  useEffect(() => {
+    const handleUpdate = () => {
+      loadData()
+    }
+    window.addEventListener('tasks_updated', handleUpdate)
+    window.addEventListener('moon_tasks_updated', handleUpdate)
+    window.addEventListener('goals_updated', handleUpdate)
+    return () => {
+      window.removeEventListener('tasks_updated', handleUpdate)
+      window.removeEventListener('moon_tasks_updated', handleUpdate)
+      window.removeEventListener('goals_updated', handleUpdate)
+    }
   }, [loadData])
 
   // Pomodoro timer effect
@@ -166,11 +185,22 @@ export const TodayPage: React.FC = () => {
 
   const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !isSupabaseConfigured()) return
+    if (!title.trim()) {
+      setSaveError('Vui lòng nhập tên công việc')
+      return
+    }
+    if (!user) {
+      setSaveError('Vui lòng đăng nhập để lưu công việc')
+      return
+    }
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({
+    try {
+      setIsSaving(true)
+      setSaveError(null)
+
+      const selectedGoal = goals.find((g) => g.id === selectedGoalId)
+
+      const newTask = await createTask({
         user_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
@@ -183,15 +213,12 @@ export const TodayPage: React.FC = () => {
         goal_id: selectedGoalId || null,
         is_priority: isPriority,
         status: 'pending',
+        goal: selectedGoal
+          ? { id: selectedGoal.id, title: selectedGoal.title, category: selectedGoal.category }
+          : null,
       })
-      .select('*, goal:goals(id, title, category)')
-      .single()
 
-    if (!error && data) {
-      setTasks((prev) => [...prev, data])
-      if (selectedGoalId) {
-        await syncGoalProgress(selectedGoalId, user.id)
-      }
+      setTasks((prev) => [newTask, ...prev.filter((t) => t.id !== newTask.id)])
       setIsModalOpen(false)
       setTitle('')
       setDescription('')
@@ -199,6 +226,11 @@ export const TodayPage: React.FC = () => {
       setEndTime('')
       setSelectedGoalId('')
       setIsPriority(false)
+    } catch (err: any) {
+      console.error('Error saving task:', err)
+      setSaveError(err.message || 'Không thể lưu công việc. Vui lòng thử lại.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -465,11 +497,20 @@ export const TodayPage: React.FC = () => {
       {/* Create Task Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSaveError(null)
+        }}
         title="Thêm Công Việc Mới"
         maxWidth="md"
       >
         <form onSubmit={handleSaveTask} className="space-y-3.5">
+          {saveError && (
+            <div className="p-3 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{saveError}</span>
+            </div>
+          )}
           <Input
             label="Tên công việc *"
             value={title}
@@ -583,11 +624,19 @@ export const TodayPage: React.FC = () => {
           </label>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-            <Button type="button" variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsModalOpen(false)
+                setSaveError(null)
+              }}
+            >
               Hủy
             </Button>
-            <Button type="submit" variant="primary" size="sm">
-              Lưu công việc
+            <Button type="submit" variant="primary" size="sm" disabled={isSaving}>
+              {isSaving ? 'Đang lưu...' : 'Lưu công việc'}
             </Button>
           </div>
         </form>

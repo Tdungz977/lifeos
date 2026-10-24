@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { Habit, HabitCheckin } from '@/types/database'
 import { format, subDays, getDay, parseISO } from 'date-fns'
 
@@ -8,6 +8,49 @@ export interface HabitWithStats extends Habit {
   completion_rate: number
   total_checkins: number
   recent_checkins: string[] // ISO date strings
+}
+
+const LOCAL_HABITS_PREFIX = 'lifeos_habits_'
+const LOCAL_CHECKINS_PREFIX = 'lifeos_habit_checkins_'
+
+export function getLocalHabits(userId: string): Habit[] {
+  if (typeof window === 'undefined' || !userId) return []
+  try {
+    const raw = localStorage.getItem(`${LOCAL_HABITS_PREFIX}${userId}`)
+    return raw ? JSON.parse(raw) : []
+  } catch (err) {
+    console.error('Error reading local habits:', err)
+    return []
+  }
+}
+
+export function saveLocalHabits(userId: string, habits: Habit[]): void {
+  if (typeof window === 'undefined' || !userId) return
+  try {
+    localStorage.setItem(`${LOCAL_HABITS_PREFIX}${userId}`, JSON.stringify(habits))
+  } catch (err) {
+    console.error('Error saving local habits:', err)
+  }
+}
+
+export function getLocalCheckins(userId: string): HabitCheckin[] {
+  if (typeof window === 'undefined' || !userId) return []
+  try {
+    const raw = localStorage.getItem(`${LOCAL_CHECKINS_PREFIX}${userId}`)
+    return raw ? JSON.parse(raw) : []
+  } catch (err) {
+    console.error('Error reading local habit checkins:', err)
+    return []
+  }
+}
+
+export function saveLocalCheckins(userId: string, checkins: HabitCheckin[]): void {
+  if (typeof window === 'undefined' || !userId) return
+  try {
+    localStorage.setItem(`${LOCAL_CHECKINS_PREFIX}${userId}`, JSON.stringify(checkins))
+  } catch (err) {
+    console.error('Error saving local habit checkins:', err)
+  }
 }
 
 /**
@@ -52,10 +95,6 @@ export function calculateStreaks(
     }
   }
 
-  if (isTodayChecked && isTodayScheduled) {
-    // Already included today
-  }
-
   // Calculate longest streak from all historical dates (up to 90 days lookback)
   for (let i = 90; i >= 0; i--) {
     const date = subDays(today, i)
@@ -81,24 +120,40 @@ export function calculateStreaks(
 }
 
 export async function getHabitsWithStats(userId: string, todayStr: string): Promise<HabitWithStats[]> {
-  const { data: habits, error: habitErr } = await supabase
-    .from('habits')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
+  if (!userId) return []
+  let habits = getLocalHabits(userId).filter((h) => h.is_active)
+  let checkins = getLocalCheckins(userId)
 
-  if (habitErr || !habits) return []
+  if (isSupabaseConfigured()) {
+    try {
+      const { data: cloudHabits } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
 
-  const { data: checkins, error: checkinErr } = await supabase
-    .from('habit_checkins')
-    .select('*')
-    .eq('user_id', userId)
+      if (cloudHabits && cloudHabits.length > 0) {
+        habits = cloudHabits
+        saveLocalHabits(userId, cloudHabits)
+      }
 
-  if (checkinErr) return habits as any
+      const { data: cloudCheckins } = await supabase
+        .from('habit_checkins')
+        .select('*')
+        .eq('user_id', userId)
+
+      if (cloudCheckins && cloudCheckins.length > 0) {
+        checkins = cloudCheckins
+        saveLocalCheckins(userId, cloudCheckins)
+      }
+    } catch (err) {
+      console.warn('Supabase getHabitsWithStats error, using local fallback:', err)
+    }
+  }
 
   const checkinsByHabit: Record<string, Set<string>> = {}
-  checkins?.forEach((c) => {
+  checkins.forEach((c) => {
     if (!checkinsByHabit[c.habit_id]) {
       checkinsByHabit[c.habit_id] = new Set()
     }

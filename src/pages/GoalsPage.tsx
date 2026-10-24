@@ -8,11 +8,28 @@ import {
   Search,
   CheckSquare,
   Loader2,
+  AlertTriangle,
+  Briefcase,
+  Wallet,
+  HeartPulse,
+  GraduationCap,
+  Sparkles,
+  Users,
+  Check,
+  Flame,
+  Flag,
+  Sliders,
+  CalendarDays,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import { Goal } from '@/types/database'
-import { getGoalsWithCounts } from '@/services/goalService'
+import { Goal, GoalStatus } from '@/types/database'
+import {
+  getGoalsWithCounts,
+  createGoal,
+  updateGoal,
+  deleteGoal,
+} from '@/services/goalService'
 import { GoalDetailModal } from '@/components/goals/GoalDetailModal'
 import { Card } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
@@ -24,6 +41,153 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { GOAL_CATEGORIES, GOAL_STATUS_MAP } from '@/lib/constants'
 import { formatViDate } from '@/lib/utils'
 
+// Helpers for quick target date presets
+const getEndOfWeekDate = () => {
+  const now = new Date()
+  const day = now.getDay()
+  const diff = day === 0 ? 0 : 7 - day
+  const target = new Date(now)
+  target.setDate(now.getDate() + diff)
+  const y = target.getFullYear()
+  const m = String(target.getMonth() + 1).padStart(2, '0')
+  const d = String(target.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getEndOfMonthDate = () => {
+  const now = new Date()
+  const target = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const y = target.getFullYear()
+  const m = String(target.getMonth() + 1).padStart(2, '0')
+  const d = String(target.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getEndOfQuarterDate = () => {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const quarterEndMonth = Math.floor(currentMonth / 3) * 3 + 3
+  const target = new Date(now.getFullYear(), quarterEndMonth, 0)
+  const y = target.getFullYear()
+  const m = String(target.getMonth() + 1).padStart(2, '0')
+  const d = String(target.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getThreeMonthsDate = () => {
+  const now = new Date()
+  const target = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate())
+  const y = target.getFullYear()
+  const m = String(target.getMonth() + 1).padStart(2, '0')
+  const d = String(target.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getEndOfYearDate = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-12-31`
+}
+
+const CATEGORY_ITEMS = [
+  {
+    value: 'finance',
+    label: 'Tài chính cá nhân',
+    icon: Wallet,
+    color: 'emerald',
+    activeClass:
+      'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40 shadow-sm shadow-emerald-500/10',
+    iconClass: 'text-emerald-400',
+  },
+  {
+    value: 'career',
+    label: 'Sự nghiệp & Việc làm',
+    icon: Briefcase,
+    color: 'blue',
+    activeClass:
+      'border-blue-500 bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/40 shadow-sm shadow-blue-500/10',
+    iconClass: 'text-blue-400',
+  },
+  {
+    value: 'health',
+    label: 'Sức khỏe & Thể chất',
+    icon: HeartPulse,
+    color: 'rose',
+    activeClass:
+      'border-rose-500 bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/40 shadow-sm shadow-rose-500/10',
+    iconClass: 'text-rose-400',
+  },
+  {
+    value: 'education',
+    label: 'Học tập & Kỹ năng',
+    icon: GraduationCap,
+    color: 'indigo',
+    activeClass:
+      'border-indigo-500 bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-500/40 shadow-sm shadow-indigo-500/10',
+    iconClass: 'text-indigo-400',
+  },
+  {
+    value: 'personal',
+    label: 'Phát triển bản thân',
+    icon: Sparkles,
+    color: 'amber',
+    activeClass:
+      'border-amber-500 bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/40 shadow-sm shadow-amber-500/10',
+    iconClass: 'text-amber-400',
+  },
+  {
+    value: 'relationships',
+    label: 'Mối quan hệ & Đời sống',
+    icon: Users,
+    color: 'purple',
+    activeClass:
+      'border-purple-500 bg-purple-500/15 text-purple-300 ring-1 ring-purple-500/40 shadow-sm shadow-purple-500/10',
+    iconClass: 'text-purple-400',
+  },
+]
+
+const GOAL_CYCLE_ITEMS = [
+  { value: 'weekly', label: 'Tuần', icon: Calendar },
+  { value: 'monthly', label: 'Tháng', icon: CalendarDays },
+  { value: 'quarterly', label: 'Quý', icon: Target },
+  { value: 'yearly', label: 'Năm', icon: Flag },
+]
+
+const PRIORITY_ITEMS = [
+  {
+    value: 'low',
+    label: 'Thấp',
+    dot: 'bg-slate-400',
+    activeClass: 'border-slate-500 bg-slate-800 text-slate-200 ring-1 ring-slate-500/40',
+  },
+  {
+    value: 'medium',
+    label: 'Trung bình',
+    dot: 'bg-blue-400',
+    activeClass: 'border-blue-500 bg-blue-950/70 text-blue-300 ring-1 ring-blue-500/40',
+  },
+  {
+    value: 'high',
+    label: 'Cao',
+    dot: 'bg-amber-400',
+    activeClass: 'border-amber-500 bg-amber-950/70 text-amber-300 ring-1 ring-amber-500/40',
+  },
+  {
+    value: 'urgent',
+    label: 'Khẩn cấp',
+    dot: 'bg-rose-500',
+    activeClass: 'border-rose-500 bg-rose-950/70 text-rose-300 ring-1 ring-rose-500/40',
+  },
+]
+
+const STATUS_ITEMS: { value: GoalStatus; label: string }[] = [
+  { value: 'not_started', label: 'Chưa bắt đầu' },
+  { value: 'in_progress', label: 'Đang thực hiện' },
+  { value: 'completed', label: 'Đã hoàn thành' },
+  { value: 'paused', label: 'Tạm dừng' },
+]
+
+const QUICK_UNITS = ['%', 'triệu VNĐ', 'VNĐ', 'cuốn', 'km', 'giờ', 'chiếc', 'ngày']
+
 export const GoalsPage: React.FC = () => {
   const { user } = useAuth()
   const [goals, setGoals] = useState<Goal[]>([])
@@ -31,6 +195,8 @@ export const GoalsPage: React.FC = () => {
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [detailGoalId, setDetailGoalId] = useState<string | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -43,15 +209,16 @@ export const GoalsPage: React.FC = () => {
   // Form state
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('career')
+  const [category, setCategory] = useState('finance')
   const [goalType, setGoalType] = useState('quarterly')
   const [priority, setPriority] = useState('high')
+  const [status, setStatus] = useState<GoalStatus>('in_progress')
   const [targetDate, setTargetDate] = useState('')
   const [targetValue, setTargetValue] = useState('100')
   const [unit, setUnit] = useState('%')
 
   const fetchGoals = useCallback(async () => {
-    if (!user || !isSupabaseConfigured()) {
+    if (!user) {
       setLoading(false)
       return
     }
@@ -71,16 +238,29 @@ export const GoalsPage: React.FC = () => {
     fetchGoals()
   }, [fetchGoals])
 
+  // Listen for cross-component goal updates
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchGoals()
+    }
+    window.addEventListener('goals_updated', handleUpdate)
+    return () => {
+      window.removeEventListener('goals_updated', handleUpdate)
+    }
+  }, [fetchGoals])
+
   const handleOpenCreate = () => {
     setEditingGoal(null)
     setTitle('')
     setDescription('')
-    setCategory('career')
+    setCategory('finance')
     setGoalType('quarterly')
     setPriority('high')
+    setStatus('in_progress')
     setTargetDate('')
     setTargetValue('100')
     setUnit('%')
+    setSaveError(null)
     setIsModalOpen(true)
   }
 
@@ -92,9 +272,11 @@ export const GoalsPage: React.FC = () => {
     setCategory(goal.category)
     setGoalType(goal.goal_type)
     setPriority(goal.priority)
+    setStatus(goal.status || 'in_progress')
     setTargetDate(goal.target_date || '')
-    setTargetValue(String(goal.target_value))
+    setTargetValue(String(goal.target_value ?? 100))
     setUnit(goal.unit || '%')
+    setSaveError(null)
     setIsModalOpen(true)
   }
 
@@ -105,39 +287,71 @@ export const GoalsPage: React.FC = () => {
 
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !isSupabaseConfigured()) return
-
-    const payload = {
-      user_id: user.id,
-      title: title.trim(),
-      description: description.trim() || null,
-      category,
-      goal_type: goalType as any,
-      priority: priority as any,
-      target_date: targetDate || null,
-      target_value: Number(targetValue) || 100,
-      unit,
+    if (!title.trim()) {
+      setSaveError('Vui lòng nhập tên mục tiêu')
+      return
+    }
+    if (!user) {
+      setSaveError('Vui lòng đăng nhập để lưu mục tiêu')
+      return
     }
 
-    if (editingGoal) {
-      await supabase
-        .from('goals')
-        .update(payload)
-        .eq('id', editingGoal.id)
-        .eq('user_id', user.id)
-    } else {
-      await supabase.from('goals').insert(payload)
-    }
+    try {
+      setIsSaving(true)
+      setSaveError(null)
 
-    setIsModalOpen(false)
-    fetchGoals()
+      const payload = {
+        user_id: user.id,
+        title: title.trim(),
+        description: description.trim() || null,
+        category,
+        goal_type: goalType as any,
+        priority: priority as any,
+        target_date: targetDate || null,
+        target_value: Number(targetValue) || 100,
+        unit: unit.trim() || '%',
+        ...(editingGoal ? { status } : {}),
+      }
+
+      let savedGoal: Goal | null = null
+      if (editingGoal) {
+        savedGoal = await updateGoal(editingGoal.id, payload, user.id)
+      } else {
+        savedGoal = await createGoal(payload)
+      }
+
+      if (savedGoal) {
+        const goalWithCounts = {
+          ...savedGoal,
+          linked_tasks_count: editingGoal?.linked_tasks_count || 0,
+          completed_tasks_count: editingGoal?.completed_tasks_count || 0,
+        }
+        setGoals((prev) =>
+          editingGoal
+            ? prev.map((g) => (g.id === savedGoal!.id ? goalWithCounts : g))
+            : [goalWithCounts, ...prev]
+        )
+      }
+
+      setIsModalOpen(false)
+      setTitle('')
+      setDescription('')
+      setTargetDate('')
+      fetchGoals()
+    } catch (err: any) {
+      console.error('Error saving goal:', err)
+      setSaveError(err.message || 'Không thể lưu mục tiêu. Vui lòng thử lại.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDeleteGoal = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm('Bạn có chắc chắn muốn xóa mục tiêu này? Tất cả mốc con và liên kết sẽ bị xóa.')) return
-    if (!user || !isSupabaseConfigured()) return
-    await supabase.from('goals').delete().eq('id', id).eq('user_id', user.id)
+    if (!user) return
+
+    await deleteGoal(id, user.id)
     setGoals((prev) => prev.filter((g) => g.id !== id))
   }
 
@@ -324,98 +538,317 @@ export const GoalsPage: React.FC = () => {
       {/* Goal Create/Edit Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingGoal ? 'Chỉnh Sửa Mục Tiêu' : 'Tạo Mục Tiêu Mới'}
-        maxWidth="md"
+        onClose={() => {
+          setIsModalOpen(false)
+          setSaveError(null)
+        }}
+        maxWidth="lg"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 text-white shrink-0">
+              <Target className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                {editingGoal ? 'Chỉnh Sửa Mục Tiêu' : 'Tạo Mục Tiêu Mới'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {editingGoal
+                  ? 'Cập nhật lộ trình, chỉ số định lượng và kế hoạch hành động'
+                  : 'Xác định mục tiêu rõ ràng, định lượng hóa và kiên định theo đuổi'}
+              </p>
+            </div>
+          </div>
+        }
       >
-        <form onSubmit={handleSaveGoal} className="space-y-3.5">
-          <Input
-            label="Tên mục tiêu *"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ví dụ: Đạt chứng chỉ AWS Solutions Architect, Tiết kiệm 100 triệu..."
-            required
-            autoFocus
-          />
+        <form onSubmit={handleSaveGoal} className="space-y-4 pt-1">
+          {saveError && (
+            <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{saveError}</span>
+            </div>
+          )}
 
+          {/* Tên mục tiêu */}
           <div className="space-y-1.5 text-left">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-              Mô tả chi tiết / Lý do tại sao
+              Tên mục tiêu <span className="text-rose-400">*</span>
             </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Mục tiêu này giúp ích gì cho cuộc sống của bạn?..."
-              rows={2}
-              className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-lg p-3 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5 text-left">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                Lĩnh vực
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {GOAL_CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5 text-left">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                Chu kỳ
-              </label>
-              <select
-                value={goalType}
-                onChange={(e) => setGoalType(e.target.value)}
-                className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="monthly">Mục tiêu Tháng</option>
-                <option value="quarterly">Mục tiêu Quý</option>
-                <option value="yearly">Mục tiêu Năm</option>
-                <option value="weekly">Mục tiêu Tuần</option>
-              </select>
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-indigo-400">
+                <Target className="w-4 h-4" />
+              </div>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ví dụ: Mua iPhone 14 Pro, Tiết kiệm 50 triệu, Học IELTS 7.5..."
+                required
+                autoFocus
+                className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/70 focus:border-indigo-500 transition-all shadow-inner"
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Hạn đích hoàn thành"
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-            />
+          {/* Lĩnh vực cuộc sống */}
+          <div className="space-y-2 text-left">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+              Lĩnh vực cuộc sống
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {CATEGORY_ITEMS.map((cat) => {
+                const Icon = cat.icon
+                const isSelected = category === cat.value
+                return (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setCategory(cat.value)}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer ${
+                      isSelected
+                        ? cat.activeClass
+                        : 'border-slate-800 bg-[#101726]/60 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        isSelected ? 'bg-white/10 text-white' : 'bg-slate-800/60 ' + cat.iconClass
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="truncate">{cat.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Chu kỳ & Mức độ ưu tiên */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Chu kỳ */}
+            <div className="space-y-1.5 text-left">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Chu kỳ mục tiêu
+              </label>
+              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900/80 rounded-xl border border-slate-800">
+                {GOAL_CYCLE_ITEMS.map((c) => {
+                  const Icon = c.icon
+                  const isSelected = goalType === c.value
+                  return (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => setGoalType(c.value)}
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span>{c.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Mức độ ưu tiên */}
             <div className="space-y-1.5 text-left">
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                 Mức độ ưu tiên
               </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="low">Thấp</option>
-                <option value="medium">Trung bình</option>
-                <option value="high">Cao</option>
-                <option value="urgent">Khẩn cấp</option>
-              </select>
+              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900/80 rounded-xl border border-slate-800">
+                {PRIORITY_ITEMS.map((p) => {
+                  const isSelected = priority === p.value
+                  return (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => setPriority(p.value)}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                        isSelected
+                          ? p.activeClass
+                          : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${p.dot}`} />
+                      <span className="truncate">{p.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-            <Button type="button" variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>
+          {/* Chỉ số đo lường & Định lượng */}
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2.5 text-left">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                Chỉ số đo lường mục tiêu
+              </label>
+              <span className="text-[11px] text-slate-400">Định lượng hóa tiến trình</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Mục tiêu cần đạt</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={targetValue}
+                  onChange={(e) => setTargetValue(e.target.value)}
+                  placeholder="100"
+                  className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Đơn vị đo lường</label>
+                <input
+                  type="text"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  placeholder="%, triệu VNĐ, cuốn, km..."
+                  className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            {/* Quick unit chips */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <span className="text-[11px] text-slate-500">Gợi ý đơn vị:</span>
+              {QUICK_UNITS.map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setUnit(u)}
+                  className={`text-[11px] px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                    unit === u
+                      ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300 font-medium'
+                      : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/60'
+                  }`}
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Hạn đích hoàn thành */}
+          <div className="space-y-1.5 text-left">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                Hạn đích hoàn thành
+              </label>
+              {targetDate && (
+                <button
+                  type="button"
+                  onClick={() => setTargetDate('')}
+                  className="text-[11px] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                >
+                  Xóa hạn
+                </button>
+              )}
+            </div>
+            <input
+              type="date"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-xl px-3.5 py-2 text-sm text-slate-100 [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            {/* Quick date presets */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <span className="text-[11px] text-slate-500">Chọn nhanh:</span>
+              {[
+                { label: 'Cuối tuần', fn: getEndOfWeekDate },
+                { label: 'Cuối tháng', fn: getEndOfMonthDate },
+                { label: 'Cuối quý', fn: getEndOfQuarterDate },
+                { label: '3 tháng tới', fn: getThreeMonthsDate },
+                { label: 'Cuối năm', fn: getEndOfYearDate },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setTargetDate(preset.fn())}
+                  className="text-[11px] px-2 py-0.5 rounded-md bg-slate-800/60 border border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-all cursor-pointer"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Trạng thái tiến độ (Chỉ hiện khi chỉnh sửa) */}
+          {editingGoal && (
+            <div className="space-y-1.5 text-left">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Trạng thái tiến độ
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {STATUS_ITEMS.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setStatus(s.value)}
+                    className={`py-2 px-2 rounded-xl text-xs font-medium border transition-all text-center cursor-pointer ${
+                      status === s.value
+                        ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300 ring-1 ring-indigo-500/40'
+                        : 'bg-[#101726]/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mô tả chi tiết / Lý do tại sao */}
+          <div className="space-y-1.5 text-left">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                Mô tả chi tiết / Lý do tại sao (Why)
+              </label>
+              <span className="text-[11px] text-slate-400 italic">Động lực hành động</span>
+            </div>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Mục tiêu này giúp ích gì cho cuộc sống của bạn? Tại sao bạn bắt buộc phải đạt được nó?..."
+              rows={2}
+              className="w-full bg-[#101726]/80 border border-slate-700/70 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800/80">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsModalOpen(false)
+                setSaveError(null)
+              }}
+            >
               Hủy
             </Button>
-            <Button type="submit" variant="primary" size="sm">
-              {editingGoal ? 'Cập nhật' : 'Tạo mục tiêu'}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSaving}
+              leftIcon={
+                isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : editingGoal ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )
+              }
+              className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/30 px-5"
+            >
+              {isSaving ? 'Đang lưu...' : (editingGoal ? 'Lưu cập nhật' : 'Tạo mục tiêu')}
             </Button>
           </div>
         </form>

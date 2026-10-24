@@ -54,18 +54,23 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Modal Dialog Content */}
       <div
         className={cn(
-          'relative w-full rounded-2xl bg-[#0f172a] border border-slate-700/80 p-6 shadow-2xl z-10 animate-fade-in max-h-[90vh] overflow-y-auto text-slate-100',
+          'relative w-full rounded-2xl bg-[#0f172a]/95 border border-slate-700/80 p-6 shadow-2xl shadow-black/80 z-10 animate-fade-in max-h-[90vh] overflow-y-auto text-slate-100 backdrop-blur-xl',
           widths[maxWidth]
         )}
       >
-        <div className="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-slate-800">
-          <div>
-            <h2 className="text-lg font-bold text-slate-100 tracking-tight">{title}</h2>
+        <div className="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-slate-800/80">
+          <div className="flex-1 min-w-0">
+            {typeof title === 'string' ? (
+              <h2 className="text-lg font-bold text-slate-100 tracking-tight">{title}</h2>
+            ) : (
+              title
+            )}
             {description && <p className="text-xs text-slate-400 mt-1">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all active:scale-95 shrink-0 cursor-pointer"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>

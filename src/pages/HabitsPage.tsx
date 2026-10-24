@@ -16,7 +16,14 @@ import { format, subDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useAuth } from '@/context/AuthContext'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import { HabitWithStats, getHabitsWithStats } from '@/services/habitService'
+import {
+  HabitWithStats,
+  getHabitsWithStats,
+  getLocalHabits,
+  saveLocalHabits,
+  getLocalCheckins,
+  saveLocalCheckins,
+} from '@/services/habitService'
 import { Card, CardHeader } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
@@ -54,7 +61,7 @@ export const HabitsPage: React.FC = () => {
   })
 
   const loadHabits = useCallback(async () => {
-    if (!user || !isSupabaseConfigured()) {
+    if (!user) {
       setLoading(false)
       return
     }
@@ -75,18 +82,30 @@ export const HabitsPage: React.FC = () => {
   }, [loadHabits])
 
   const handleToggleCheckin = async (habitId: string, checkinDate: string) => {
-    if (!user || !isSupabaseConfigured()) return
+    if (!user) return
 
     const targetHabit = habits.find((h) => h.id === habitId)
     const isChecked = targetHabit?.recent_checkins.includes(checkinDate)
 
+    const localCheckins = getLocalCheckins(user.id)
     if (isChecked) {
-      await supabase
-        .from('habit_checkins')
-        .delete()
-        .eq('habit_id', habitId)
-        .eq('checkin_date', checkinDate)
-        .eq('user_id', user.id)
+      const filtered = localCheckins.filter(
+        (c) => !(c.habit_id === habitId && c.checkin_date === checkinDate)
+      )
+      saveLocalCheckins(user.id, filtered)
+
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase
+            .from('habit_checkins')
+            .delete()
+            .eq('habit_id', habitId)
+            .eq('checkin_date', checkinDate)
+            .eq('user_id', user.id)
+        } catch (err) {
+          console.warn('Supabase delete checkin error:', err)
+        }
+      }
     } else {
       if (checkinDate === todayStr) {
         confetti({
@@ -95,11 +114,27 @@ export const HabitsPage: React.FC = () => {
           origin: { y: 0.7 },
         })
       }
-      await supabase.from('habit_checkins').insert({
+      const newCheckin = {
+        id: crypto.randomUUID(),
         habit_id: habitId,
         user_id: user.id,
         checkin_date: checkinDate,
-      })
+        value: 1,
+        created_at: new Date().toISOString(),
+      }
+      saveLocalCheckins(user.id, [...localCheckins, newCheckin])
+
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.from('habit_checkins').insert({
+            habit_id: habitId,
+            user_id: user.id,
+            checkin_date: checkinDate,
+          })
+        } catch (err) {
+          console.warn('Supabase insert checkin error:', err)
+        }
+      }
     }
 
     loadHabits()
@@ -127,22 +162,41 @@ export const HabitsPage: React.FC = () => {
 
   const handleSaveHabit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !isSupabaseConfigured()) return
+    if (!user) return
 
+    const now = new Date().toISOString()
+    const habitId = editingId || crypto.randomUUID()
     const payload = {
+      id: habitId,
       user_id: user.id,
       name: name.trim(),
       description: description.trim() || null,
       category,
       frequency: frequency as any,
       schedule_days: selectedDays,
+      target_per_day: 1,
+      start_date: now.split('T')[0],
       is_active: true,
+      created_at: now,
+      updated_at: now,
     }
 
-    if (editingId) {
-      await supabase.from('habits').update(payload).eq('id', editingId).eq('user_id', user.id)
-    } else {
-      await supabase.from('habits').insert(payload)
+    const local = getLocalHabits(user.id)
+    const updated = editingId
+      ? local.map((h) => (h.id === editingId ? { ...h, ...payload } : h))
+      : [payload, ...local]
+    saveLocalHabits(user.id, updated)
+
+    if (isSupabaseConfigured()) {
+      try {
+        if (editingId) {
+          await supabase.from('habits').update(payload).eq('id', editingId).eq('user_id', user.id)
+        } else {
+          await supabase.from('habits').insert(payload)
+        }
+      } catch (err) {
+        console.warn('Supabase saveHabit error:', err)
+      }
     }
 
     setIsModalOpen(false)
@@ -151,8 +205,18 @@ export const HabitsPage: React.FC = () => {
 
   const handleDeleteHabit = async (id: string) => {
     if (!confirm('Bạn có chắc muốn xóa thói quen này? Lịch sử check-in sẽ được gỡ bỏ.')) return
-    if (!user || !isSupabaseConfigured()) return
-    await supabase.from('habits').delete().eq('id', id).eq('user_id', user.id)
+    if (!user) return
+
+    const local = getLocalHabits(user.id)
+    saveLocalHabits(user.id, local.filter((h) => h.id !== id))
+
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('habits').delete().eq('id', id).eq('user_id', user.id)
+      } catch (err) {
+        console.warn('Supabase deleteHabit error:', err)
+      }
+    }
     loadHabits()
   }
 
